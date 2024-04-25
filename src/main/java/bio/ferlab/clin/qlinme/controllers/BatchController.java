@@ -59,22 +59,23 @@ public class BatchController {
     var validations = ctx.bodyValidator(Metadata.class)
       .check("runName", m -> validateRunName(m, batchId), "should be similar to batch_id ("+batchId+")")
       .check("submissionSchema", this::validateSubmissionSchema, "should be " + schemaValues)
-      .check("ldm", m -> validateAnalysesField(m, "ldm", ldmValues, false), "should be " + ldmValues)
-      .check("panelCode",  m -> validateAnalysesField(m, "panelCode", panelCodeValues, false), "should be " + panelCodeValues)
-      .check("sampleType", m -> validateAnalysesField(m, "sampleType", sampleTypeValues, false), "should be " + sampleTypeValues)
-      .check("specimenType", m -> validateAnalysesField(m, "specimenType", specimenTypeValues, false), "should be " + specimenTypeValues)
-      .check("designFamily",  m -> validateAnalysesField(m, "designFamily", designFamilyValues, false), "should be " + designFamilyValues)
-      .check("ep",  m -> validateAnalysesField(m, "ep", epValues, false), "should be " + epValues)
-      .check("familyMember",m -> validateAnalysesField(m, "familyMember", familyMemberValues, false), "should be " + familyMemberValues)
-      .check("fetus", m -> validateAnalysesField(m, "fetus", fetusValues, false), "should be " + fetusValues)
-      .check("sex", m -> validateAnalysesField(m, "sex", sexValues, false), "should be " + sexValues)
-      .check("status",  m -> validateAnalysesField(m, "status", statusValues, false), "should be " + statusValues)
-      .check("patient",  m -> validateAnalysesField(m, "patient", null, false), "should have mrn or ramq or both")
-      .check("familyId",  m -> validateAnalysesField(m, "familyId", null, false), "designFamily SOLO should not have familyId")
-      .check("version", m -> validateAnalysesField(m, "version", versionValues, false), "should be " + versionValues)
-      .check("labAliquotId", m -> validateAnalysesField(m, "labAliquotId", null, true), "should be unique")
-      .check("mrn", m -> validateAnalysesField(m, "mrn", null, true), "should be unique")
-      .check("ramq", m -> validateAnalysesField(m, "ramq", null, true), "should be unique");
+      .check("ldm", m -> validateAnalysesField(m, "ldm", ldmValues, false, false), "should be " + ldmValues)
+      .check("panelCode",  m -> validateAnalysesField(m, "panelCode", panelCodeValues, false, false), "should be " + panelCodeValues)
+      .check("sampleType", m -> validateAnalysesField(m, "sampleType", sampleTypeValues, false,false), "should be " + sampleTypeValues)
+      .check("specimenType", m -> validateAnalysesField(m, "specimenType", specimenTypeValues, false, false), "should be " + specimenTypeValues)
+      .check("designFamily",  m -> validateAnalysesField(m, "designFamily", designFamilyValues, false, false), "should be " + designFamilyValues)
+      .check("ep",  m -> validateAnalysesField(m, "ep", epValues, false, false), "should be " + epValues)
+      .check("familyMember",m -> validateAnalysesField(m, "familyMember", familyMemberValues, false, false), "should be " + familyMemberValues)
+      .check("fetus", m -> validateAnalysesField(m, "fetus", fetusValues, false, false), "should be " + fetusValues)
+      .check("sex", m -> validateAnalysesField(m, "sex", sexValues, false, false), "should be " + sexValues)
+      .check("status",  m -> validateAnalysesField(m, "status", statusValues, false, false), "should be " + statusValues)
+      .check("patient",  m -> validateAnalysesField(m, "patient", null, false, false), "should have mrn or ramq or both")
+      .check("familyId",  m -> validateAnalysesField(m, "familyId", null, false, false), "designFamily SOLO should not have familyId")
+      .check("version", m -> validateAnalysesField(m, "version", versionValues, false, false), "should be " + versionValues)
+      .check("labAliquotId", m -> validateAnalysesField(m, "labAliquotId", null, true, false), "should be unique")
+      .check("mrn", m -> validateAnalysesField(m, "mrn", null, true, true), "should be unique")
+      .check("ramq", m -> validateAnalysesField(m, "ramq", null, true, true), "should be unique")
+      .check("exomiser", m -> validateAnalysesField(m, "exomiser", null, false, false), "familyMember other than PROBAND should not have exomiser files");
     var metadata = validations.get();
     s3Client.saveMetadata(metadataBucket, batchId, ctx.body());
     ctx.json(metadata);
@@ -98,12 +99,13 @@ public class BatchController {
     return validate(m, m.submissionSchema()) && schemaValues.contains(m.submissionSchema());
   }
 
-  private boolean validateAnalysesField(Metadata m, String fieldName, List<?> values, boolean unique) {
+  private boolean validateAnalysesField(Metadata m, String fieldName, List<?> values, boolean unique, boolean allowNullable) {
     boolean isValid = m != null && m.analyses() != null && !m.analyses().isEmpty();
     Map<String, List<String>> valuesByField = new TreeMap<>();
     if (isValid) {
       for (var ana : m.analyses()) {
         String fieldValue = null;
+        var familyMember = Optional.ofNullable(ana.patient()).map(Metadata.Patient::familyMember).orElse(null);
         switch (fieldName){
           case "ldm":
             fieldValue = ana.ldm();
@@ -124,7 +126,7 @@ public class BatchController {
             fieldValue = Optional.ofNullable(ana.patient()).map(Metadata.Patient::ep).orElse(null);
             break;
           case "familyMember":
-            fieldValue = Optional.ofNullable(ana.patient()).map(Metadata.Patient::familyMember).orElse(null);
+            fieldValue = familyMember;
             break;
           case "fetus":
             fieldValue = Optional.ofNullable(ana.patient()).map(Metadata.Patient::fetus).map(String::valueOf).orElse(null);
@@ -160,8 +162,18 @@ public class BatchController {
           case "ramq":
             fieldValue = Optional.ofNullable(ana.patient()).map(Metadata.Patient::ramq).orElse(null);
             break;
+          case "exomiser":
+            var e1 = Optional.ofNullable(ana.files()).map(Metadata.Files::exomiser_html).orElse(null);
+            var e2 = Optional.ofNullable(ana.files()).map(Metadata.Files::exomiser_json).orElse(null);
+            var e3 = Optional.ofNullable(ana.files()).map(Metadata.Files::exomiser_variants_tsv).orElse(null);
+            if (!"PROBAND".equals(familyMember)) {
+              fieldValue = StringUtils.isAllBlank(e1, e2, e3) ? "OK" : null;
+            } else {
+              fieldValue = "OK";
+            }
+            break;
         }
-        isValid = isValid & validate(m, fieldValue) && (values == null || values.contains(fieldValue));
+        isValid = isValid & (allowNullable || (validate(m, fieldValue) && (values == null || values.contains(fieldValue))));
         // unicity
         valuesByField.computeIfAbsent(fieldName, f -> new ArrayList<>());
         var previousFieldValues = valuesByField.get(fieldName);

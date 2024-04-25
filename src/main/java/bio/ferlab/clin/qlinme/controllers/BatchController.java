@@ -1,8 +1,11 @@
 package bio.ferlab.clin.qlinme.controllers;
 
+import bio.ferlab.clin.qlinme.Routes;
 import bio.ferlab.clin.qlinme.Utils;
 import bio.ferlab.clin.qlinme.model.Metadata;
+import bio.ferlab.clin.qlinme.model.UserToken;
 import io.javalin.http.Context;
+import io.javalin.openapi.*;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
@@ -11,6 +14,29 @@ public class BatchController {
 
   private final List<String> schemaValues = List.of("CQGC_Germline", "CQGC_Exome_Tumeur_Seul");
 
+  @OpenApi(
+    summary = "Create or update batch",
+    description = "Crate or update batch by batch_id and validate content",
+    operationId = "batchCreateUpdate",
+    path = Routes.BATCH_POST,
+    methods = HttpMethod.POST,
+    tags = {"Batch"},
+    headers = {
+      @OpenApiParam(name = "Authorization", required = true),
+    },
+    pathParams = {
+      @OpenApiParam(name = "batch_id", required = true),
+    },
+    requestBody = @OpenApiRequestBody(
+      description = "Metadata",
+      content = @OpenApiContent(from = Metadata.class)
+    ),
+    responses = {
+      @OpenApiResponse(status = "200", content = @OpenApiContent(from = UserToken.class)),
+      @OpenApiResponse(status = "400"),
+      @OpenApiResponse(status = "403"),
+    }
+  )
   public void batchCreateUpdate(Context ctx) {
     var batchId = Utils.getValidParamParam(ctx, "batch_id").get();
     var validations = ctx.bodyValidator(Metadata.class)

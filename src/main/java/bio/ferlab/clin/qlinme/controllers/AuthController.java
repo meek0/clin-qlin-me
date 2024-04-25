@@ -31,6 +31,8 @@ public class AuthController {
     },
     responses = {
       @OpenApiResponse(status = "200", content = @OpenApiContent(from = UserToken.class)),
+      @OpenApiResponse(status = "400"),
+      @OpenApiResponse(status = "401"),
     }
   )
   public void login(Context ctx) throws IOException {

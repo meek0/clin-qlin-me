@@ -24,6 +24,8 @@ public class Config {
   public final String keycloakClient = getEnv("KEYCLOAK_CLIENT").orElse("clin-client");
   public final String keycloakAudience = getEnv("KEYCLOAK_AUDIENCE").orElse("clin-acl");
 
+  public final String serverBaseUrl = getEnv("SERVER_BASE_URL").orElse("http://localhost:8080");
+
   public Config() {
     var rootLogger = ((ch.qos.logback.classic.Logger) LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME));
     rootLogger.setLevel(Env.prod.equals(env) ? Level.ERROR : Level.INFO);

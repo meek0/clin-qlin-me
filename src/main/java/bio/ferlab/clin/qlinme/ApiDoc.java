@@ -15,25 +15,19 @@ public class ApiDoc {
     config.registerPlugin(new OpenApiPlugin(openApiConfig ->
       openApiConfig
         .withDocumentationPath(deprecatedDocsPath)
-        .withRoles(App.Roles.ANONYMOUS)
+        //.withRoles(App.Roles.ANONYMOUS)
         /*.withDefinitionConfiguration((version, openApiDefinition) ->
           openApiDefinition
             .withInfo(openApiInfo ->
               openApiInfo
-                .description("App description goes right here")
-                .termsOfService("https://example.com/tos")
-                .contact("API Support", "https://www.example.com/support", "support@example.com")
-                .license("Apache 2.0", "https://www.apache.org/licenses/", "Apache-2.0")
+                .title("Qlin-Me")
+                .summary("API to import data with validations")
             )
             .withServer(openApiServer ->
               openApiServer
-                .description("Server description goes here")
-                .url("http://localhost:{port}{basePath}/" + version + "/")
-                .variable("port", "Server's port", "8080", "8080", "7070")
-                .variable("basePath", "Base path of the server", "", "", "v1")
+                .description("Server endpoint")
+                .url(serverUrl)
             )
-            // Based on official example: https://swagger.io/docs/specification/authentication/oauth2/
-
             .withSecurity(openApiSecurity ->
               openApiSecurity
                 .withBasicAuth()

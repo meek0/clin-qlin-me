@@ -69,6 +69,8 @@ public class BatchController {
       .check("fetus", m -> validateAnalysesField(m, "fetus", fetusValues), "should be " + fetusValues)
       .check("sex", m -> validateAnalysesField(m, "sex", sexValues), "should be " + sexValues)
       .check("status",  m -> validateAnalysesField(m, "status", statusValues), "should be " + statusValues)
+      .check("patient",  m -> validateAnalysesField(m, "patient", null), "should have mrn or ramq or both")
+      .check("familyId",  m -> validateAnalysesField(m, "familyId", null), "designFamily SOLO should not have familyId")
       .check("version", m -> validateAnalysesField(m, "version", versionValues), "should be " + versionValues);
     var metadata = validations.get();
     s3Client.saveMetadata(metadataBucket, batchId, ctx.body());
@@ -123,8 +125,21 @@ public class BatchController {
           case "version":
             fieldValue = Optional.ofNullable(ana.workflow()).map(Metadata.Workflow::version).orElse(null);
             break;
+          case "patient":
+            var mrn = Optional.ofNullable(ana.patient()).map(Metadata.Patient::mrn);
+            var ramq = Optional.ofNullable(ana.patient()).map(Metadata.Patient::ramq);
+            fieldValue = mrn.or(() -> ramq).orElse(null);
+            break;
+          case "familyId":
+            var designFamily = Optional.ofNullable(ana.patient()).map(Metadata.Patient::designFamily).orElse(null);
+            if ("SOLO".equals(designFamily)) {
+              fieldValue = Optional.ofNullable(ana.patient()).map(Metadata.Patient::familyId).isPresent() ? null : "OK";
+            } else {
+              fieldValue = Optional.ofNullable(ana.patient()).map(Metadata.Patient::familyId).orElse(null);
+            }
+            break;
         }
-        isValid = isValid & validate(m, fieldValue) && values.contains(fieldValue);
+        isValid = isValid & validate(m, fieldValue) && (values == null || values.contains(fieldValue));
       }
     }
     return isValid;

@@ -2,6 +2,7 @@ package bio.ferlab.clin.qlinme.cients;
 
 import bio.ferlab.clin.qlinme.model.Metadata;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -15,6 +16,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import java.net.URI;
 import java.time.Duration;
 
+@Slf4j
 public class S3Client {
 
   private final software.amazon.awssdk.services.s3.S3Client s3Client;
@@ -36,6 +38,7 @@ public class S3Client {
   public void saveMetadata(String bucket, String batchId, String metadata) {
     var key = batchId+ "/metadata.json";
     var request = PutObjectRequest.builder().bucket(bucket).key(key).build();
+    log.info("Save metadata: {}", key);
     s3Client.putObject(request, RequestBody.fromString(metadata));
   }
 

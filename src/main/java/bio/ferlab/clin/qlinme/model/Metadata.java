@@ -10,11 +10,11 @@ public record Metadata(String submissionSchema, List<Analysis> analyses) {
 
   public record Patient(String firstName, String lastName, String sex, String ramq, String birthDate, String mrn,
                         String ep,
-                        String designFamily, String familyMember, String familyId, String status, boolean fetus) {
+                        String designFamily, String familyMember, String familyId, String status, Boolean fetus) {
   }
 
   public record Experiment(String platform, String sequencerId, String runName, String runDate, String runAlias,
-                           String flowcellId, boolean isPairedEnd, int fragmentSize, String experimentalStrategy,
+                           String flowcellId, Boolean isPairedEnd, Integer fragmentSize, String experimentalStrategy,
                            String captureKit, String baitDefinition, String protocol) {
   }
 

@@ -4,6 +4,7 @@ import bio.ferlab.clin.qlinme.Routes;
 import bio.ferlab.clin.qlinme.Utils;
 import bio.ferlab.clin.qlinme.cients.KeycloakClient;
 import bio.ferlab.clin.qlinme.model.UserToken;
+import com.auth0.jwt.JWT;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.*;
@@ -40,7 +41,10 @@ public class AuthController {
       ctx.status(HttpStatus.BAD_REQUEST).json(errors);
     } else {
       var token = keycloakClient.getRpt(keycloakClient.getAccessToken(email.get(), password.get()));
-      ctx.json(new UserToken(token));
+      var decoded = JWT.decode(token);
+      var expiresAt = decoded.getClaim("exp").asInt();
+      var duration = expiresAt - decoded.getClaim("iat").asInt();
+      ctx.json(new UserToken(token, expiresAt, duration));
     }
   }
 }

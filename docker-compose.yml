@@ -1,0 +1,37 @@
+version: '3'
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '8080:8080'
+    mem_limit: 512m
+    cpus: 0.5
+    environment:
+      PORT: 8080
+      JAVA_OPTS: -XX:+UseG1GC -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XshowSettings:vm -XX:+PrintCommandLineFlags -XX:+TieredCompilation
+    healthcheck:
+      test: curl -Is localhost:8080/actuator/health | head -n 1 | grep 200 || exit 1
+      interval: 10s
+      timeout: 15s
+      retries: 5
+    depends_on:
+      - minio
+  minio:
+    image: minio/minio:RELEASE.2023-01-20T02-05-44Z.hotfix.e1dbac2c1
+    command: minio server /data --address ":9000" --console-address ":9001"
+    ports:
+      - 9000:9000
+      - 9001:9001
+    environment:
+      MINIO_ACCESS_KEY: minio
+      MINIO_SECRET_KEY: minio123
+      MINIO_CI_CD: '1'
+    healthcheck:
+      test: curl -Is localhost:9001 | head -n 1 | grep 200 || exit 1
+      interval: 10s
+      timeout: 15s
+      retries: 5
+    volumes:
+      - ./data:/data

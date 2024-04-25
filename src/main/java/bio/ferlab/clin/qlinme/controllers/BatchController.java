@@ -3,41 +3,58 @@ package bio.ferlab.clin.qlinme.controllers;
 import bio.ferlab.clin.qlinme.Routes;
 import bio.ferlab.clin.qlinme.Utils;
 import bio.ferlab.clin.qlinme.cients.S3Client;
+import bio.ferlab.clin.qlinme.model.BatchStatus;
 import bio.ferlab.clin.qlinme.model.MetadataValidation;
 import bio.ferlab.clin.qlinme.model.Metadata;
-import bio.ferlab.clin.qlinme.model.UserToken;
+import bio.ferlab.clin.qlinme.model.MetadataHistory;
+import bio.ferlab.clin.qlinme.services.MetadataValidationService;
+import io.javalin.http.ContentType;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.*;
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang3.StringUtils;
-
-import java.util.*;
 
 @RequiredArgsConstructor
 public class BatchController {
 
-  private final List<String> schemaValues = List.of("CQGC_Germline", "CQGC_Exome_Tumeur_Seul");
-  private final List<String> ldmValues = List.of("LDM-CHUSJ", "LDM-CHUS", "LDM-CUSM");
-  private final List<String> panelCodeValues = List.of("MMG", "DYSM", "RHAB", "MITN", "MYOC", "MYAC", "HYPM", "RGDI", "POLYM", "TRATU", "EXTUM", "EXNOR", "TUPED", "TUHEM");
-  private final List<String> sampleTypeValues = List.of("DNA");
-  private final List<String> specimenTypeValues = List.of("NBL", "TUMOR");
-  private final List<String> designFamilyValues = List.of("SOLO", "DUO", "TRIO");
-  private final List<String> epValues = List.of("CHUSJ", "CHUS", "CUSM");
-  private final List<String> familyMemberValues = List.of("PROBAND", "MTH", "FTH", "SIS", "BRO");
-  private final List<String> fetusValues = List.of("false", "null");
-  private final List<String> sexValues = List.of("female", "male", "unknown");
-  private final List<String> statusValues = List.of("AFF", "UNF", "UNK");
-  private final List<String> versionValues = List.of("3.8.4", "4.2.4");
-
   private final S3Client s3Client;
   private final String metadataBucket;
+  private final MetadataValidationService metadataValidationService;
+
 
   @OpenApi(
-    summary = "Create or update batch",
-    description = "Crate or update batch by batch_id and validate content",
+    summary = "read metadata",
+    description = "Return current metadata by batch_id",
+    operationId = "batchRead",
+    path = Routes.BATCH,
+    methods = HttpMethod.GET,
+    tags = {"Batch"},
+    headers = {
+      @OpenApiParam(name = "Authorization", required = true),
+    },
+    pathParams = {
+      @OpenApiParam(name = "batch_id", required = true),
+    },
+    responses = {
+      @OpenApiResponse(status = "200", content = @OpenApiContent(from = Metadata.class)),
+      @OpenApiResponse(status = "403"),
+      @OpenApiResponse(status = "404"),
+    }
+  )
+  public void batchRead(Context ctx) {
+    var batchId = Utils.getValidParamParam(ctx, "batch_id").get();
+    try {
+      ctx.contentType(ContentType.APPLICATION_JSON).result(s3Client.getMetadata(metadataBucket, batchId));
+    } catch (Exception e) {
+      ctx.status(HttpStatus.NOT_FOUND);
+    }
+  }
+
+  @OpenApi(
+    summary = "create or update metadata",
+    description = "Create or update the metadata of a batch by batch_id and validate content",
     operationId = "batchCreateUpdate",
-    path = Routes.BATCH_POST,
+    path = Routes.BATCH,
     methods = HttpMethod.POST,
     tags = {"Batch"},
     headers = {
@@ -59,130 +76,97 @@ public class BatchController {
   public void batchCreateUpdate(Context ctx) {
     var batchId = Utils.getValidParamParam(ctx, "batch_id").get();
     var metadata = ctx.bodyAsClass(Metadata.class);
-    var validation = validateMetadata(metadata, batchId);
+    var validation = metadataValidationService.validateMetadata(metadata, batchId);
     if (!validation.isValid()) {
       ctx.status(HttpStatus.BAD_REQUEST).json(validation);
     }else {
-      s3Client.saveMetadata(metadataBucket, batchId, ctx.body());
+      s3Client.backupAndSaveMetadata(metadataBucket, batchId, ctx.body());
       ctx.json(metadata);
     }
   }
 
-  private MetadataValidation validateMetadata(Metadata m, String batchId) {
-    var validation = new MetadataValidation();
-    Map<String,  List<String>> valuesByField = new TreeMap<>();
-    if (m != null) {
-      validateField("submissionSchema", m.submissionSchema(), validation, schemaValues);
-      if (!m.analyses().isEmpty()) {
-        for (int ai = 0 ; ai < m.analyses().size() ; ai ++) {
-          var ana = m.analyses().get(ai);
-          var errorPrefix = "analyses["+ai+"]";
-          String familyMember = null;
-
-          validateField(errorPrefix+".ldm", ana.ldm(), validation, ldmValues);
-          validateField(errorPrefix+".labAliquotId", ana.labAliquotId(), validation, null);
-          checkUnicity("labAliquotId", errorPrefix+".labAliquotId", ana.labAliquotId(), valuesByField, validation);
-
-          var panelCode = Optional.ofNullable(ana.analysisCode()).filter(StringUtils::isNotBlank).orElse(ana.panelCode());
-          validateField(errorPrefix+".panelCode", panelCode, validation, panelCodeValues);
-
-          validateField(errorPrefix+".sampleType", ana.sampleType(), validation, sampleTypeValues);
-          validateField(errorPrefix+".specimenType", ana.specimenType(), validation, specimenTypeValues);
-          if (ana.patient() != null) {
-            var patient = ana.patient();
-            familyMember = patient.familyMember();
-            validateField(errorPrefix+".patient.designFamily", patient.designFamily(), validation, designFamilyValues);
-            validateField(errorPrefix+".patient.ep", patient.ep(), validation, epValues);
-            validateField(errorPrefix+".patient.familyMember", familyMember, validation, familyMemberValues);
-            validateField(errorPrefix+".patient.fetus", String.valueOf(patient.fetus()), validation, fetusValues);
-            validateField(errorPrefix+".patient.sex", patient.sex(), validation, sexValues);
-            validateField(errorPrefix+".patient.status", patient.status(), validation, statusValues);
-            validatePatient(errorPrefix+".patient", patient,validation);
-            validateFamilyId(errorPrefix+".patient", patient, validation);
-            checkUnicity("mrn",errorPrefix+".patient.mrn", patient.mrn(), valuesByField, validation);
-            checkUnicity("ramq", errorPrefix+".patient.ramq",patient.ramq(), valuesByField, validation);
-          } else {
-            validation.addError(errorPrefix+".patient",  "is required");
-          }
-
-          if (ana.experiment() != null) {
-            var exp = ana.experiment();
-            validateField(errorPrefix+".experiment.runName", exp.runName(), validation, null);
-            validateRunName(errorPrefix+".experiment.runName", exp.runName(), validation, batchId);
-          } else {
-            validation.addError(errorPrefix+".experiment",  "is required");
-          }
-
-          if (ana.workflow() != null) {
-            var work = ana.workflow();
-            validateField(errorPrefix+".workflow.version", work.version(), validation, versionValues);
-          } else {
-            validation.addError(errorPrefix+".workflow",  "is required");
-          }
-
-          if (ana.files() != null) {
-            var files = ana.files();
-            if (!"PROBAND".equals(familyMember)) {
-              validateExomiser(errorPrefix+".files", files, validation);
-            }
-          } else {
-            validation.addError(errorPrefix+".files",  "is required");
-          }
-        }
-      } else {
-        validation.addError("analyses",  "is required");
-      }
-    } else {
-      validation.addError("metadata",  "is required");
+  @OpenApi(
+    summary = "status",
+    description = "Return status of the current batchs",
+    operationId = "batchStatus",
+    path = Routes.BATCH_STATUS,
+    methods = HttpMethod.GET,
+    tags = {"Batch"},
+    headers = {
+      @OpenApiParam(name = "Authorization", required = true),
+    },
+    pathParams = {
+      @OpenApiParam(name = "batch_id", required = true),
+    },
+    responses = {
+      @OpenApiResponse(status = "200", content = @OpenApiContent(from = BatchStatus.class)),
+      @OpenApiResponse(status = "403"),
+      @OpenApiResponse(status = "404"),
     }
-    return validation;
+  )
+  public void batchStatus(Context ctx) {
+    var batchId = Utils.getValidParamParam(ctx, "batch_id").get();
+    // TODO coder la status
+    ctx.json(new BatchStatus("not implemented"));
   }
 
-  private void validateField(String field, String value, MetadataValidation validation, List<String> values) {
-    if (StringUtils.isBlank(value)) {
-      if (values != null && !values.isEmpty()) {
-        validation.addError(field, "should be "+values);
-      } else {
-        validation.addError(field, "is missing");
-      }
-    } else if (values != null && !values.contains(value)) {
-        validation.addError(field, "should be " + values);
+
+  @OpenApi(
+    summary = "history of versions",
+    description = "Return previous versions of the metadata by batch id",
+    operationId = "batchHistory",
+    path = Routes.BATCH_HISTORY,
+    methods = HttpMethod.GET,
+    tags = {"Batch"},
+    headers = {
+      @OpenApiParam(name = "Authorization", required = true),
+    },
+    pathParams = {
+      @OpenApiParam(name = "batch_id", required = true),
+    },
+    responses = {
+      @OpenApiResponse(status = "200", content = @OpenApiContent(from = MetadataHistory.class)),
+      @OpenApiResponse(status = "403"),
+      @OpenApiResponse(status = "404"),
     }
+  )
+  public void batchHistory(Context ctx) {
+    var batchId = Utils.getValidParamParam(ctx, "batch_id").get();
+    var versions = s3Client.listBackupVersion(metadataBucket, batchId);
+    ctx.json(versions.stream().map(o -> new MetadataHistory(extractVersion(o.key()), o.lastModified().toString())).toList());
   }
 
-  private void validateRunName(String field, String runName, MetadataValidation validation, String batchId) {
-    if (runName == null || !batchId.contains(runName)) {
-      validation.addError(field, "should be similar to batch_id: "+batchId);
-    }
+  private String extractVersion(String key) {
+    var token = key.split("\\.");
+    return token[token.length-1];
   }
 
-  private void validatePatient(String field, Metadata.Patient patient, MetadataValidation validation) {
-    if (StringUtils.isAllBlank(patient.mrn(), patient.ramq())) {
-      validation.addError(field, "should have mrn or ramq or both");
+  @OpenApi(
+    summary = "read version",
+    description = "Return a specific version of the metadata by batch id",
+    operationId = "batchHistoryVersion",
+    path = Routes.BATCH_HISTORY_BY_VERSION,
+    methods = HttpMethod.GET,
+    tags = {"Batch"},
+    headers = {
+      @OpenApiParam(name = "Authorization", required = true),
+    },
+    pathParams = {
+      @OpenApiParam(name = "batch_id", required = true),
+    },
+    responses = {
+      @OpenApiResponse(status = "200", content = @OpenApiContent(from = Metadata.class)),
+      @OpenApiResponse(status = "400", content = @OpenApiContent(from = MetadataValidation.class)),
+      @OpenApiResponse(status = "403"),
     }
-  }
-
-  private void validateFamilyId(String field, Metadata.Patient patient, MetadataValidation validation) {
-    if ("SOLO".equals(patient.designFamily()) && StringUtils.isNotBlank(patient.familyId())) {
-      validation.addError(field, "designFamily SOLO should not have familyId");
-    }
-  }
-
-  private void validateExomiser(String field, Metadata.Files files, MetadataValidation validation) {
-    if (!StringUtils.isAllBlank(files.exomiser_html(), files.exomiser_json(), files.exomiser_variants_tsv())) {
-      validation.addError(field, "familyMember other than PROBAND should not have exomiser files");
-    }
-  }
-
-  private void checkUnicity(String globalField, String field, String value, Map<String, List<String>> valuesByField, MetadataValidation validation) {
-    valuesByField.computeIfAbsent(globalField, f -> new ArrayList<>());
-    var previousFieldValues = valuesByField.get(globalField);
-    if (value != null) {
-      if (previousFieldValues.contains(value)) {
-        validation.addError(field, "should be unique");
-      } else {
-        previousFieldValues.add(value);
-      }
+  )
+  public void batchHistoryByVersion(Context ctx) {
+    var batchId = Utils.getValidParamParam(ctx, "batch_id").get();
+    var version = Utils.getValidParamParam(ctx, "version").get();
+    try {
+      ctx.contentType(ContentType.APPLICATION_JSON).result(s3Client.getBackupMetadata(metadataBucket, batchId, version));
+    } catch (Exception e) {
+      ctx.status(HttpStatus.NOT_FOUND);
     }
   }
 

@@ -9,6 +9,7 @@ import bio.ferlab.clin.qlinme.handlers.ExceptionHandler;
 import bio.ferlab.clin.qlinme.handlers.HealthCheckHandler;
 import bio.ferlab.clin.qlinme.handlers.SecurityHandler;
 import bio.ferlab.clin.qlinme.handlers.Slf4jRequestLogger;
+import bio.ferlab.clin.qlinme.services.MetadataValidationService;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import io.javalin.Javalin;
@@ -28,11 +29,12 @@ public class App {
   public static final Slf4jRequestLogger requestLogger = new Slf4jRequestLogger();
   public static final ExceptionHandler exceptionHandler = new ExceptionHandler();
   public static final S3Client s3Client = new S3Client(config.awsEndpoint, config.awsAccessKey, config.awsSecretKey, 15000);
-  public static final FhirClient fhirClient = new FhirClient(config.fhirUrl, 15000, 20);
+  //public static final FhirClient fhirClient = new FhirClient(config.fhirUrl, 15000, 20);
   public static final KeycloakClient keycloakClient = new KeycloakClient(config.keycloakUrl, 15000);
   public static final SecurityHandler securityHandler = new SecurityHandler(config.keycloakUrl, config.keycloakAudience, config.securityEnabled);
   public static final AuthController authController = new AuthController(keycloakClient);
-  public static final BatchController batchController = new BatchController(s3Client, config.awsBucket);
+  public static final MetadataValidationService metadataValidationService = new MetadataValidationService();
+  public static final BatchController batchController = new BatchController(s3Client, config.awsBucket, metadataValidationService);
 
   public static void main(String[] args) {
     var app = Javalin.create(conf -> {
@@ -67,7 +69,11 @@ public class App {
       })
       .get(Routes.ACTUATOR_HEALTH, healthCheckHandler)
       .get(Routes.AUTH_LOGIN, authController::login, Roles.ANONYMOUS)
-      .post(Routes.BATCH_POST, batchController::batchCreateUpdate, Roles.USER)
+      .get(Routes.BATCH, batchController::batchRead, Roles.USER)
+      .post(Routes.BATCH, batchController::batchCreateUpdate, Roles.USER)
+      .get(Routes.BATCH_STATUS, batchController::batchStatus, Roles.USER)
+      .get(Routes.BATCH_HISTORY, batchController::batchHistory, Roles.USER)
+      .get(Routes.BATCH_HISTORY_BY_VERSION, batchController::batchHistoryByVersion, Roles.USER)
       .start(config.port);
   }
 

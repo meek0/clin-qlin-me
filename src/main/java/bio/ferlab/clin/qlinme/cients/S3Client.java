@@ -9,16 +9,17 @@ import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Configuration;
-import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
-import software.amazon.awssdk.services.s3.model.MetadataDirective;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.*;
 
+import java.io.IOException;
 import java.net.URI;
 import java.time.Duration;
+import java.util.List;
 
 @Slf4j
 public class S3Client {
 
+  private static final String BACKUP_FOLDER = ".backup";
   private final software.amazon.awssdk.services.s3.S3Client s3Client;
 
   public S3Client(String url, String accessKey, String secretKey, int timeoutMs) {
@@ -35,11 +36,61 @@ public class S3Client {
       ).build();
   }
 
-  public void saveMetadata(String bucket, String batchId, String metadata) {
+  private boolean exists(String bucket, String key) {
+    try {
+      s3Client.headObject(HeadObjectRequest.builder().bucket(bucket).key(key).build());
+      return true;
+    } catch (NoSuchKeyException e) {
+      return false;
+    }
+  }
+
+  private List<String> listKeys(String bucket, String prefix) {
+    var request = ListObjectsRequest.builder().bucket(bucket).prefix(prefix).build();
+    return s3Client.listObjects(request).contents().stream().map(S3Object::key).toList();
+  }
+
+  private List<S3Object> listObjects(String bucket, String prefix) {
+    var request = ListObjectsRequest.builder().bucket(bucket).prefix(prefix).build();
+    return s3Client.listObjects(request).contents();
+  }
+
+  private void copyObject(String srcBucket, String srKey, String destBucket, String destKey) {
+    var request = CopyObjectRequest.builder().sourceBucket(srcBucket).sourceKey(srKey).destinationBucket(destBucket).destinationKey(destKey).build();
+    s3Client.copyObject(request);
+  }
+
+  private void backupMetadata(String bucket, String batchId) {
+    var key = batchId+ "/metadata.json";
+    if(exists(bucket, key)) {
+      var previous = listKeys(bucket, BACKUP_FOLDER);
+      var backupKey = BACKUP_FOLDER+"/"+batchId+"/metadata.json."+(previous.size()+1);
+      log.info("Backup metadata: {}", backupKey);
+     copyObject(bucket, key, bucket, backupKey);
+    }
+  }
+
+  public List<S3Object> listBackupVersion(String bucket, String batchId) {
+    return listObjects(bucket, BACKUP_FOLDER+"/"+batchId);
+  }
+
+  public void backupAndSaveMetadata(String bucket, String batchId, String metadata) {
+    backupMetadata(bucket, batchId);
     var key = batchId+ "/metadata.json";
     var request = PutObjectRequest.builder().bucket(bucket).key(key).build();
     log.info("Save metadata: {}", key);
     s3Client.putObject(request, RequestBody.fromString(metadata));
   }
 
+  public byte[] getMetadata(String bucket, String batchId) throws IOException {
+    var backupKey = batchId+"/metadata.json";
+    var request = GetObjectRequest.builder().bucket(bucket).key(backupKey).build();
+    return s3Client.getObject(request).readAllBytes();
+  }
+
+  public byte[] getBackupMetadata(String bucket, String batchId, String version) throws IOException {
+    var backupKey = BACKUP_FOLDER+"/"+batchId+"/metadata.json."+version;
+    var request = GetObjectRequest.builder().bucket(bucket).key(backupKey).build();
+    return s3Client.getObject(request).readAllBytes();
+  }
 }

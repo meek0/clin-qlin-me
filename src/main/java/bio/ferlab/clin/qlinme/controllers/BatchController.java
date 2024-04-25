@@ -10,8 +10,7 @@ import io.javalin.openapi.*;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @RequiredArgsConstructor
 public class BatchController {
@@ -58,25 +57,38 @@ public class BatchController {
   public void batchCreateUpdate(Context ctx) {
     var batchId = Utils.getValidParamParam(ctx, "batch_id").get();
     var validations = ctx.bodyValidator(Metadata.class)
+      .check("runName", m -> validateRunName(m, batchId), "should be similar to batch_id ("+batchId+")")
       .check("submissionSchema", this::validateSubmissionSchema, "should be " + schemaValues)
-      .check("ldm", m -> validateAnalysesField(m, "ldm", ldmValues), "should be " + ldmValues)
-      .check("panelCode",  m -> validateAnalysesField(m, "panelCode", panelCodeValues), "should be " + panelCodeValues)
-      .check("sampleType", m -> validateAnalysesField(m, "sampleType", sampleTypeValues), "should be " + sampleTypeValues)
-      .check("specimenType", m -> validateAnalysesField(m, "specimenType", specimenTypeValues), "should be " + specimenTypeValues)
-      .check("designFamily",  m -> validateAnalysesField(m, "designFamily", designFamilyValues), "should be " + designFamilyValues)
-      .check("ep",  m -> validateAnalysesField(m, "ep", epValues), "should be " + epValues)
-      .check("familyMember",m -> validateAnalysesField(m, "familyMember", familyMemberValues), "should be " + familyMemberValues)
-      .check("fetus", m -> validateAnalysesField(m, "fetus", fetusValues), "should be " + fetusValues)
-      .check("sex", m -> validateAnalysesField(m, "sex", sexValues), "should be " + sexValues)
-      .check("status",  m -> validateAnalysesField(m, "status", statusValues), "should be " + statusValues)
-      .check("patient",  m -> validateAnalysesField(m, "patient", null), "should have mrn or ramq or both")
-      .check("familyId",  m -> validateAnalysesField(m, "familyId", null), "designFamily SOLO should not have familyId")
-      .check("version", m -> validateAnalysesField(m, "version", versionValues), "should be " + versionValues);
+      .check("ldm", m -> validateAnalysesField(m, "ldm", ldmValues, false), "should be " + ldmValues)
+      .check("panelCode",  m -> validateAnalysesField(m, "panelCode", panelCodeValues, false), "should be " + panelCodeValues)
+      .check("sampleType", m -> validateAnalysesField(m, "sampleType", sampleTypeValues, false), "should be " + sampleTypeValues)
+      .check("specimenType", m -> validateAnalysesField(m, "specimenType", specimenTypeValues, false), "should be " + specimenTypeValues)
+      .check("designFamily",  m -> validateAnalysesField(m, "designFamily", designFamilyValues, false), "should be " + designFamilyValues)
+      .check("ep",  m -> validateAnalysesField(m, "ep", epValues, false), "should be " + epValues)
+      .check("familyMember",m -> validateAnalysesField(m, "familyMember", familyMemberValues, false), "should be " + familyMemberValues)
+      .check("fetus", m -> validateAnalysesField(m, "fetus", fetusValues, false), "should be " + fetusValues)
+      .check("sex", m -> validateAnalysesField(m, "sex", sexValues, false), "should be " + sexValues)
+      .check("status",  m -> validateAnalysesField(m, "status", statusValues, false), "should be " + statusValues)
+      .check("patient",  m -> validateAnalysesField(m, "patient", null, false), "should have mrn or ramq or both")
+      .check("familyId",  m -> validateAnalysesField(m, "familyId", null, false), "designFamily SOLO should not have familyId")
+      .check("version", m -> validateAnalysesField(m, "version", versionValues, false), "should be " + versionValues)
+      .check("labAliquotId", m -> validateAnalysesField(m, "labAliquotId", null, true), "should be unique")
+      .check("mrn", m -> validateAnalysesField(m, "mrn", null, true), "should be unique")
+      .check("ramq", m -> validateAnalysesField(m, "ramq", null, true), "should be unique");
     var metadata = validations.get();
     s3Client.saveMetadata(metadataBucket, batchId, ctx.body());
     ctx.json(metadata);
   }
 
+  private boolean validateRunName(Metadata m, String batchId) {
+    boolean isValid = m != null && m.analyses() != null && !m.analyses().isEmpty();
+    if (isValid) {
+      for (var ana : m.analyses()) {
+        isValid = isValid & Optional.ofNullable(ana.experiment()).map(Metadata.Experiment::runName).filter(batchId::contains).isPresent();
+      }
+    }
+    return isValid;
+  }
 
   private boolean validate(Metadata m, String field) {
     return m != null && StringUtils.isNotBlank(field);
@@ -86,8 +98,9 @@ public class BatchController {
     return validate(m, m.submissionSchema()) && schemaValues.contains(m.submissionSchema());
   }
 
-  private boolean validateAnalysesField(Metadata m, String fieldName, List<?> values) {
+  private boolean validateAnalysesField(Metadata m, String fieldName, List<?> values, boolean unique) {
     boolean isValid = m != null && m.analyses() != null && !m.analyses().isEmpty();
+    Map<String, List<String>> valuesByField = new TreeMap<>();
     if (isValid) {
       for (var ana : m.analyses()) {
         String fieldValue = null;
@@ -138,8 +151,27 @@ public class BatchController {
               fieldValue = Optional.ofNullable(ana.patient()).map(Metadata.Patient::familyId).orElse(null);
             }
             break;
+          case "labAliquotId":
+            fieldValue = Optional.ofNullable(ana).map(Metadata.Analysis::labAliquotId).orElse(null);
+            break;
+          case "mrn":
+            fieldValue = Optional.ofNullable(ana.patient()).map(Metadata.Patient::mrn).orElse(null);
+            break;
+          case "ramq":
+            fieldValue = Optional.ofNullable(ana.patient()).map(Metadata.Patient::ramq).orElse(null);
+            break;
         }
         isValid = isValid & validate(m, fieldValue) && (values == null || values.contains(fieldValue));
+        // unicity
+        valuesByField.computeIfAbsent(fieldName, f -> new ArrayList<>());
+        var previousFieldValues = valuesByField.get(fieldName);
+        if (unique && fieldValue != null) {
+          if (previousFieldValues.contains(fieldValue)) {
+            isValid = false;
+          } else {
+            previousFieldValues.add(fieldValue);
+          }
+        }
       }
     }
     return isValid;

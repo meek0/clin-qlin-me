@@ -1,6 +1,7 @@
 package bio.ferlab.clin.qlinme.handlers;
 
 import bio.ferlab.clin.qlinme.App;
+import bio.ferlab.clin.qlinme.Utils;
 import io.javalin.http.Context;
 import io.javalin.http.RequestLogger;
 import lombok.extern.slf4j.Slf4j;
@@ -10,7 +11,7 @@ import org.jetbrains.annotations.NotNull;
 public class Slf4jRequestLogger implements RequestLogger {
 
   public void handle(@NotNull Context ctx, @NotNull Float ms) {
-    if (App.config.publics.stream().noneMatch(p -> ctx.req().getRequestURI().startsWith(p))) {
+    if (!Utils.isPublicRoute(ctx)) {
       log.info("{} {} {} in {} ms", ctx.req().getMethod(), ctx.res().getStatus(), ctx.req().getRequestURI(), ms);
     }
   }

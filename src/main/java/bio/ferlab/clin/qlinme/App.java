@@ -7,11 +7,13 @@ import bio.ferlab.clin.qlinme.controllers.AuthController;
 import bio.ferlab.clin.qlinme.controllers.BatchController;
 import bio.ferlab.clin.qlinme.handlers.ExceptionHandler;
 import bio.ferlab.clin.qlinme.handlers.HealthCheckHandler;
+import bio.ferlab.clin.qlinme.handlers.SecurityHandler;
 import bio.ferlab.clin.qlinme.handlers.Slf4jRequestLogger;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import io.javalin.Javalin;
 import io.javalin.http.HttpResponseException;
+import io.javalin.http.HttpStatus;
 import io.javalin.json.JavalinJackson;
 import io.javalin.security.RouteRole;
 import io.javalin.validation.ValidationException;
@@ -27,7 +29,8 @@ public class App {
   public static final ExceptionHandler exceptionHandler = new ExceptionHandler();
   public static final S3Client s3Client = new S3Client(config.awsEndpoint, config.awsAccessKey, config.awsSecretKey, 15000);
   public static final FhirClient fhirClient = new FhirClient(config.fhirUrl, 15000, 20);
-  public static final KeycloakClient keycloakClient = new KeycloakClient(config.keycloakUrl, config.keycloakRealm, 15000);
+  public static final KeycloakClient keycloakClient = new KeycloakClient(config.keycloakUrl, 15000);
+  public static final SecurityHandler securityHandler = new SecurityHandler(config.keycloakUrl, config.keycloakAudience, config.securityEnabled);
   public static final AuthController authController = new AuthController(keycloakClient);
   public static final BatchController batchController = new BatchController();
 
@@ -57,9 +60,14 @@ public class App {
       .exception(HttpResponseException.class, exceptionHandler::handle)
       .exception(ValidationException.class, exceptionHandler::handle)
       .exception(Exception.class, exceptionHandler::handle)
+      .beforeMatched(ctx -> {
+        if (!ctx.routeRoles().contains(Roles.ANONYMOUS) && !Utils.isPublicRoute(ctx)) {
+          securityHandler.checkAuthorization(ctx);
+        }
+      })
       .get(Routes.ACTUATOR_HEALTH, healthCheckHandler)
-      .get(Routes.AUTH_LOGIN, authController::login)
-      .post(Routes.BATCH_POST, batchController::batchCreateUpdate)
+      .get(Routes.AUTH_LOGIN, authController::login, Roles.ANONYMOUS)
+      .post(Routes.BATCH_POST, batchController::batchCreateUpdate, Roles.USER)
       .start(config.port);
   }
 

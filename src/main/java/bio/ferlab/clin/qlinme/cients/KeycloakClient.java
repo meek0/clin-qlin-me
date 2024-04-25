@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.http.HttpResponseException;
 import io.javalin.http.HttpStatus;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
@@ -27,14 +28,14 @@ public class KeycloakClient {
   private final HttpClient httpClient;
   private final String authUrl;
 
-  public KeycloakClient(String url, String realm, int timeoutMs) {
+  public KeycloakClient(String url, int timeoutMs) {
     var config = RequestConfig.custom()
       .setConnectTimeout(timeoutMs)
       .setConnectionRequestTimeout(timeoutMs)
       .setSocketTimeout(timeoutMs).build();
     httpClient = HttpClientBuilder.create()
       .setDefaultRequestConfig(config).build();
-    this.authUrl = String.format("%s/realms/%s/protocol/openid-connect/token", url, realm);
+    this.authUrl = StringUtils.appendIfMissing(url, "/") + "protocol/openid-connect/token";
   }
 
   public String getAccessToken(String username, String password) throws IOException {

@@ -19,8 +19,9 @@ public class Config {
 
   public final String fhirUrl = getEnv("FHIR_URL").orElse(" https://fhir.qa.cqgc.hsj.rtss.qc.ca/fhir");
 
-  public final String keycloakUrl = getEnv("KEYCLOAK_URL").orElse("https://auth.qa.cqgc.hsj.rtss.qc.ca");
-  public final String keycloakRealm = getEnv("KEYCLOAK_REALM").orElse("clin");
+  public final boolean securityEnabled = getEnv("SECURITY_ENABLED").map(Boolean::parseBoolean).orElse(true);
+
+  public final String keycloakUrl = getEnv("KEYCLOAK_URL").orElse("https://auth.qa.cqgc.hsj.rtss.qc.ca/realms/clin");
   public final String keycloakClient = getEnv("KEYCLOAK_CLIENT").orElse("clin-client");
   public final String keycloakAudience = getEnv("KEYCLOAK_AUDIENCE").orElse("clin-acl");
 

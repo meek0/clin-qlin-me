@@ -32,7 +32,7 @@ public class App {
   public static final KeycloakClient keycloakClient = new KeycloakClient(config.keycloakUrl, 15000);
   public static final SecurityHandler securityHandler = new SecurityHandler(config.keycloakUrl, config.keycloakAudience, config.securityEnabled);
   public static final AuthController authController = new AuthController(keycloakClient);
-  public static final BatchController batchController = new BatchController();
+  public static final BatchController batchController = new BatchController(s3Client, config.awsBucket);
 
   public static void main(String[] args) {
     var app = Javalin.create(conf -> {

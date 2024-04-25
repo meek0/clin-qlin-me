@@ -2,15 +2,18 @@ package bio.ferlab.clin.qlinme.controllers;
 
 import bio.ferlab.clin.qlinme.Routes;
 import bio.ferlab.clin.qlinme.Utils;
+import bio.ferlab.clin.qlinme.cients.S3Client;
 import bio.ferlab.clin.qlinme.model.Metadata;
 import bio.ferlab.clin.qlinme.model.UserToken;
 import io.javalin.http.Context;
 import io.javalin.openapi.*;
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 import java.util.Optional;
 
+@RequiredArgsConstructor
 public class BatchController {
 
   private final List<String> schemaValues = List.of("CQGC_Germline", "CQGC_Exome_Tumeur_Seul");
@@ -25,6 +28,10 @@ public class BatchController {
   private final List<String> sexValues = List.of("female", "male", "unknown");
   private final List<String> statusValues = List.of("AFF", "UNF", "UNK");
   private final List<String> versionValues = List.of("3.8.4", "4.2.4");
+
+  private final S3Client s3Client;
+  private final String metadataBucket;
+
   @OpenApi(
     summary = "Create or update batch",
     description = "Crate or update batch by batch_id and validate content",
@@ -63,7 +70,9 @@ public class BatchController {
       .check("sex", m -> validateAnalysesField(m, "sex", sexValues), "should be " + sexValues)
       .check("status",  m -> validateAnalysesField(m, "status", statusValues), "should be " + statusValues)
       .check("version", m -> validateAnalysesField(m, "version", versionValues), "should be " + versionValues);
-    ctx.json(validations.get());
+    var metadata = validations.get();
+    s3Client.saveMetadata(metadataBucket, batchId, ctx.body());
+    ctx.json(metadata);
   }
 
 
@@ -106,7 +115,7 @@ public class BatchController {
             fieldValue = Optional.ofNullable(ana.patient()).map(Metadata.Patient::fetus).map(String::valueOf).orElse(null);
             break;
           case "sex":
-            fieldValue = Optional.ofNullable(ana.patient()).map(Metadata.Patient::sex).orElse(null);
+            fieldValue = Optional.ofNullable(ana.patient()).map(Metadata.Patient::sex).map(String::toLowerCase).orElse(null);
             break;
           case "status":
             fieldValue = Optional.ofNullable(ana.patient()).map(Metadata.Patient::status).orElse(null);

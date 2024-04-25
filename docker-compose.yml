@@ -10,6 +10,7 @@ services:
     cpus: 0.5
     environment:
       PORT: 8080
+      AWS_ENDPOINT: http://minio:9000
       JAVA_OPTS: -XX:+UseG1GC -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XshowSettings:vm -XX:+PrintCommandLineFlags -XX:+TieredCompilation
     healthcheck:
       test: curl -Is localhost:8080/actuator/health | head -n 1 | grep 200 || exit 1

@@ -1,10 +1,16 @@
 package bio.ferlab.clin.qlinme.cients;
 
+import bio.ferlab.clin.qlinme.model.Metadata;
+import lombok.RequiredArgsConstructor;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Configuration;
+import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
+import software.amazon.awssdk.services.s3.model.MetadataDirective;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.net.URI;
 import java.time.Duration;
@@ -25,6 +31,12 @@ public class S3Client {
         .connectionTimeout(Duration.ofMillis(timeoutMs))
         .socketTimeout(Duration.ofMillis(timeoutMs))
       ).build();
+  }
+
+  public void saveMetadata(String bucket, String batchId, String metadata) {
+    var key = batchId+ "/metadata.json";
+    var request = PutObjectRequest.builder().bucket(bucket).key(key).build();
+    s3Client.putObject(request, RequestBody.fromString(metadata));
   }
 
 }

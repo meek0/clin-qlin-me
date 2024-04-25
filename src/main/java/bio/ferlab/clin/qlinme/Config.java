@@ -16,6 +16,7 @@ public class Config {
   public final String awsAccessKey = getEnv("AWS_ACCESS_KEY").orElse("minio");
   public final String awsSecretKey = getEnv("AWS_SECRET_KEY").orElse(("minio123"));
   public final String awsEndpoint = getEnv("AWS_ENDPOINT").orElse("http://localhost:9000");
+  public final String awsBucket = getEnv("AWS_BUCKET").orElse("clin-qa-app-files-import");
 
   public final String fhirUrl = getEnv("FHIR_URL").orElse(" https://fhir.qa.cqgc.hsj.rtss.qc.ca/fhir");
 

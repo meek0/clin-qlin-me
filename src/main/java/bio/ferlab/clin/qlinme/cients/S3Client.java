@@ -64,7 +64,7 @@ public class S3Client {
   private void backupMetadata(String bucket, String batchId) {
     var key = batchId+ "/metadata.json";
     if(exists(bucket, key)) {
-      var previous = listKeys(bucket, BACKUP_FOLDER);
+      var previous = listKeys(bucket, BACKUP_FOLDER+"/"+batchId);
       var backupKey = BACKUP_FOLDER+"/"+batchId+"/metadata.json."+(previous.size()+1);
      copyObject(bucket, key, bucket, backupKey);
     }

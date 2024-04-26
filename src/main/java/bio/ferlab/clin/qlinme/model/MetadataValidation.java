@@ -1,13 +1,17 @@
 package bio.ferlab.clin.qlinme.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.Data;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.util.*;
 
 @Getter
 public class MetadataValidation {
 
+  @Setter
+  private int analysesCount = 0;
   private final Map<String, List<String>> errors = new LinkedHashMap<>();
 
   public void addError(String field, String error) {
@@ -17,6 +21,6 @@ public class MetadataValidation {
 
   @JsonIgnore
   public boolean isValid() {
-    return errors.isEmpty();
+    return errors.isEmpty() & analysesCount > 0;
   }
 }

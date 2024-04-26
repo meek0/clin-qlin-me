@@ -29,6 +29,7 @@ public class MetadataValidationService {
     if (m != null) {
       validateField("submissionSchema", m.submissionSchema(), validation, schemaValues);
       if (!m.analyses().isEmpty()) {
+        validation.setAnalysesCount(m.analyses().size());
         for (int ai = 0 ; ai < m.analyses().size() ; ai ++) {
           var ana = m.analyses().get(ai);
           var errorPrefix = "analyses["+ai+"]";
@@ -77,7 +78,7 @@ public class MetadataValidationService {
 
           if (ana.files() != null) {
             var files = ana.files();
-            if (!"PROBAND".equals(familyMember)) {
+            if ("MTH".equals(familyMember) || "FTH".equals(familyMember)) {
               validateExomiser(errorPrefix+".files", files, validation);
             }
           } else {
@@ -125,7 +126,7 @@ public class MetadataValidationService {
 
   private void validateExomiser(String field, Metadata.Files files, MetadataValidation validation) {
     if (!StringUtils.isAllBlank(files.exomiser_html(), files.exomiser_json(), files.exomiser_variants_tsv())) {
-      validation.addError(field, "familyMember other than PROBAND should not have exomiser files");
+      validation.addError(field, "familyMember other than PROBAND|SIS|BRO should not have exomiser files");
     }
   }
 

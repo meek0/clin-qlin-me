@@ -93,4 +93,12 @@ public class S3Client {
     var request = GetObjectRequest.builder().bucket(bucket).key(backupKey).build();
     return s3Client.getObject(request).readAllBytes();
   }
+
+  public List<String> listBatchFiles(String bucket, String batchId) {
+    return listObjects(bucket, batchId).stream().map(o -> o.key().replace(batchId+"/", ""))
+      .filter(f -> !f.equals("metadata.json"))
+      .filter(f -> !f.endsWith(".extra_results.tgz"))
+      .filter(f -> !f.endsWith(".hpo"))
+      .toList();
+  }
 }

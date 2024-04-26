@@ -3,10 +3,8 @@ package bio.ferlab.clin.qlinme.controllers;
 import bio.ferlab.clin.qlinme.Routes;
 import bio.ferlab.clin.qlinme.Utils;
 import bio.ferlab.clin.qlinme.cients.S3Client;
-import bio.ferlab.clin.qlinme.model.BatchStatus;
-import bio.ferlab.clin.qlinme.model.MetadataValidation;
-import bio.ferlab.clin.qlinme.model.Metadata;
-import bio.ferlab.clin.qlinme.model.MetadataHistory;
+import bio.ferlab.clin.qlinme.model.*;
+import bio.ferlab.clin.qlinme.services.FilesValidationService;
 import bio.ferlab.clin.qlinme.services.MetadataValidationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.http.ContentType;
@@ -15,14 +13,20 @@ import io.javalin.http.HttpStatus;
 import io.javalin.json.JavalinJackson;
 import io.javalin.openapi.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 
+import java.util.List;
+
+@Slf4j
 @RequiredArgsConstructor
 public class BatchController {
 
   private final S3Client s3Client;
   private final String metadataBucket;
   private final MetadataValidationService metadataValidationService;
+  private final FilesValidationService filesValidationService;
   private final JavalinJackson objectMapper;
 
 
@@ -50,8 +54,10 @@ public class BatchController {
     try {
       var metadata = objectMapper.getMapper().readValue(s3Client.getMetadata(metadataBucket, batchId), Metadata.class);
       validateOrReturnMetadata(ctx, metadata, batchId);
-    } catch (Exception e) {
+    } catch (NoSuchKeyException e) {
       ctx.status(HttpStatus.NOT_FOUND);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
     }
   }
 
@@ -122,13 +128,14 @@ public class BatchController {
     var batchId = Utils.getValidParamParam(ctx, "batch_id").get();
     try {
       var metadata = objectMapper.getMapper().readValue(s3Client.getMetadata(metadataBucket, batchId), Metadata.class);
-      var validation = metadataValidationService.validateMetadata(metadata, batchId);
-      var metadataStatus = validation.isValid() ? "OK" : "ERRORS";
-      var filestatus = "";
-      var status = "";
-      ctx.json(new BatchStatus(metadataStatus, filestatus, status));
-    } catch (Exception e) {
+      var metadataValidation = metadataValidationService.validateMetadata(metadata, batchId);
+      var filesValidation = filesValidationService.validateFiles(metadata, s3Client.listBatchFiles(metadataBucket, batchId));
+      var status = (metadataValidation.isValid() & filesValidation.isValid()) ? "READY_TO_IMPORT" : "ERRORS";
+      ctx.json(new BatchStatus(status, metadataValidation, filesValidation));
+    } catch (NoSuchKeyException e) {
       ctx.status(HttpStatus.NOT_FOUND);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
     }
   }
 
@@ -188,8 +195,10 @@ public class BatchController {
     try {
       var metadata = objectMapper.getMapper().readValue(s3Client.getBackupMetadata(metadataBucket, batchId, version), Metadata.class);
       validateOrReturnMetadata(ctx, metadata, batchId);
-    } catch (Exception e) {
+    } catch (NoSuchKeyException e) {
       ctx.status(HttpStatus.NOT_FOUND);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
     }
   }
 

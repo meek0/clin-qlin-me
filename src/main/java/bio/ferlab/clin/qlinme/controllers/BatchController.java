@@ -52,8 +52,7 @@ public class BatchController {
   public void batchRead(Context ctx) {
     var batchId = Utils.getValidParamParam(ctx, "batch_id").get();
     try {
-      var metadata = objectMapper.getMapper().readValue(s3Client.getMetadata(metadataBucket, batchId), Metadata.class);
-      validateOrReturnMetadata(ctx, metadata, batchId, false);
+      ctx.contentType(ContentType.APPLICATION_JSON).result(s3Client.getMetadata(metadataBucket, batchId));
     } catch (NoSuchKeyException e) {
       ctx.status(HttpStatus.NOT_FOUND);
     } catch (Exception e) {
@@ -87,25 +86,21 @@ public class BatchController {
   public void batchCreateUpdate(Context ctx) {
     var batchId = Utils.getValidParamParam(ctx, "batch_id").get();
     var metadata = ctx.bodyAsClass(Metadata.class);
-    validateOrReturnMetadata(ctx, metadata, batchId, true);
+    validateAndCreateMetadata(ctx, metadata, batchId);
   }
 
-  private void validateOrReturnMetadata(Context ctx, Metadata metadata, String batchId, boolean validate) {
-    if (validate) {
-      var validation = metadataValidationService.validateMetadata(metadata, batchId);
-      if (!validation.isValid()) {
-        ctx.status(HttpStatus.BAD_REQUEST).json(validation);
-      }else {
-        try {
-          var validatedMetadata = objectMapper.getMapper().writerWithDefaultPrettyPrinter().writeValueAsString(metadata);
-          s3Client.backupAndSaveMetadata(metadataBucket, batchId, validatedMetadata);
-          ctx.json(metadata);
-        } catch (Exception e) {
-          throw new RuntimeException(e);
-        }
-      }
+  private void validateAndCreateMetadata(Context ctx, Metadata metadata, String batchId) {
+    var validation = metadataValidationService.validateMetadata(metadata, batchId);
+    if (!validation.isValid()) {
+      ctx.status(HttpStatus.BAD_REQUEST).json(validation);
     }else {
-      ctx.json(metadata);
+      try {
+        var validatedMetadata = objectMapper.getMapper().writerWithDefaultPrettyPrinter().writeValueAsString(metadata);
+        s3Client.backupAndSaveMetadata(metadataBucket, batchId, validatedMetadata);
+        ctx.json(metadata);
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
     }
   }
 
@@ -197,8 +192,7 @@ public class BatchController {
     var batchId = Utils.getValidParamParam(ctx, "batch_id").get();
     var version = Utils.getValidParamParam(ctx, "version").get();
     try {
-      var metadata = objectMapper.getMapper().readValue(s3Client.getBackupMetadata(metadataBucket, batchId, version), Metadata.class);
-      validateOrReturnMetadata(ctx, metadata, batchId, false);
+      ctx.contentType(ContentType.APPLICATION_JSON).result(s3Client.getBackupMetadata(metadataBucket, batchId, version));
     } catch (NoSuchKeyException e) {
       ctx.status(HttpStatus.NOT_FOUND);
     } catch (Exception e) {

@@ -50,7 +50,7 @@ public class MetadataValidationService {
             validateField(errorPrefix+".patient.ep", patient.ep(), validation, epValues);
             validateField(errorPrefix+".patient.familyMember", familyMember, validation, familyMemberValues);
             validateField(errorPrefix+".patient.fetus", String.valueOf(patient.fetus()), validation, fetusValues);
-            validateField(errorPrefix+".patient.sex", patient.sex(), validation, sexValues);
+            validateField(errorPrefix+".patient.sex", StringUtils.toRootLowerCase(patient.sex()), validation, sexValues);
             validateField(errorPrefix+".patient.status", patient.status(), validation, statusValues);
             validatePatient(errorPrefix+".patient", patient,validation);
             validateFamilyId(errorPrefix+".patient", patient, validation);

@@ -8,11 +8,14 @@ import bio.ferlab.clin.qlinme.model.MetadataValidation;
 import bio.ferlab.clin.qlinme.model.Metadata;
 import bio.ferlab.clin.qlinme.model.MetadataHistory;
 import bio.ferlab.clin.qlinme.services.MetadataValidationService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.http.ContentType;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import io.javalin.json.JavalinJackson;
 import io.javalin.openapi.*;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 
 @RequiredArgsConstructor
 public class BatchController {
@@ -20,6 +23,7 @@ public class BatchController {
   private final S3Client s3Client;
   private final String metadataBucket;
   private final MetadataValidationService metadataValidationService;
+  private final JavalinJackson objectMapper;
 
 
   @OpenApi(
@@ -44,7 +48,8 @@ public class BatchController {
   public void batchRead(Context ctx) {
     var batchId = Utils.getValidParamParam(ctx, "batch_id").get();
     try {
-      ctx.contentType(ContentType.APPLICATION_JSON).result(s3Client.getMetadata(metadataBucket, batchId));
+      var metadata = objectMapper.getMapper().readValue(s3Client.getMetadata(metadataBucket, batchId), Metadata.class);
+      validateOrReturnMetadata(ctx, metadata, batchId);
     } catch (Exception e) {
       ctx.status(HttpStatus.NOT_FOUND);
     }
@@ -76,6 +81,10 @@ public class BatchController {
   public void batchCreateUpdate(Context ctx) {
     var batchId = Utils.getValidParamParam(ctx, "batch_id").get();
     var metadata = ctx.bodyAsClass(Metadata.class);
+    validateOrReturnMetadata(ctx, metadata, batchId);
+  }
+
+  private void validateOrReturnMetadata(Context ctx, Metadata metadata, String batchId) {
     var validation = metadataValidationService.validateMetadata(metadata, batchId);
     if (!validation.isValid()) {
       ctx.status(HttpStatus.BAD_REQUEST).json(validation);
@@ -164,7 +173,8 @@ public class BatchController {
     var batchId = Utils.getValidParamParam(ctx, "batch_id").get();
     var version = Utils.getValidParamParam(ctx, "version").get();
     try {
-      ctx.contentType(ContentType.APPLICATION_JSON).result(s3Client.getBackupMetadata(metadataBucket, batchId, version));
+      var metadata = objectMapper.getMapper().readValue(s3Client.getBackupMetadata(metadataBucket, batchId, version), Metadata.class);
+      validateOrReturnMetadata(ctx, metadata, batchId);
     } catch (Exception e) {
       ctx.status(HttpStatus.NOT_FOUND);
     }

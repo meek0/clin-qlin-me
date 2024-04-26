@@ -56,6 +56,7 @@ public class S3Client {
   }
 
   private void copyObject(String srcBucket, String srKey, String destBucket, String destKey) {
+    log.info("Copy object: {} to {}", srKey, destKey);
     var request = CopyObjectRequest.builder().sourceBucket(srcBucket).sourceKey(srKey).destinationBucket(destBucket).destinationKey(destKey).build();
     s3Client.copyObject(request);
   }
@@ -65,7 +66,6 @@ public class S3Client {
     if(exists(bucket, key)) {
       var previous = listKeys(bucket, BACKUP_FOLDER);
       var backupKey = BACKUP_FOLDER+"/"+batchId+"/metadata.json."+(previous.size()+1);
-      log.info("Backup metadata: {}", backupKey);
      copyObject(bucket, key, bucket, backupKey);
     }
   }
@@ -78,8 +78,8 @@ public class S3Client {
     backupMetadata(bucket, batchId);
     var key = batchId+ "/metadata.json";
     var request = PutObjectRequest.builder().bucket(bucket).key(key).build();
-    log.info("Save metadata: {}", key);
     s3Client.putObject(request, RequestBody.fromString(metadata));
+    copyObject(bucket, key, bucket, BACKUP_FOLDER+"/"+batchId+"/metadata.json.latest");
   }
 
   public byte[] getMetadata(String bucket, String batchId) throws IOException {

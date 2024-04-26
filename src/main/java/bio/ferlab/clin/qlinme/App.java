@@ -12,6 +12,7 @@ import bio.ferlab.clin.qlinme.handlers.Slf4jRequestLogger;
 import bio.ferlab.clin.qlinme.services.MetadataValidationService;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.Javalin;
 import io.javalin.http.HttpResponseException;
 import io.javalin.http.HttpStatus;
@@ -25,6 +26,11 @@ public class App {
 
   // all singletons
   public static final Config config = new Config();
+  public static final JavalinJackson objectMapper = new JavalinJackson().updateMapper(mapper -> {
+    mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    //mapper.setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE);
+  });
   public static final HealthCheckHandler healthCheckHandler = new HealthCheckHandler();
   public static final Slf4jRequestLogger requestLogger = new Slf4jRequestLogger();
   public static final ExceptionHandler exceptionHandler = new ExceptionHandler();
@@ -34,7 +40,7 @@ public class App {
   public static final SecurityHandler securityHandler = new SecurityHandler(config.keycloakUrl, config.keycloakAudience, config.securityEnabled);
   public static final AuthController authController = new AuthController(keycloakClient);
   public static final MetadataValidationService metadataValidationService = new MetadataValidationService();
-  public static final BatchController batchController = new BatchController(s3Client, config.awsBucket, metadataValidationService);
+  public static final BatchController batchController = new BatchController(s3Client, config.awsBucket, metadataValidationService, objectMapper);
 
   public static void main(String[] args) {
     var app = Javalin.create(conf -> {
@@ -42,11 +48,7 @@ public class App {
         conf.showJavalinBanner = false;
         conf.requestLogger.http(requestLogger);
         conf.http.gzipOnlyCompression();
-        conf.jsonMapper(new JavalinJackson().updateMapper(mapper -> {
-          mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-          mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-          //mapper.setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE);
-        }));
+        conf.jsonMapper(objectMapper);
         conf.events(event -> {
           event.serverStarting(() -> {
             log.info("App is starting with Cores: {}", Runtime.getRuntime().availableProcessors());

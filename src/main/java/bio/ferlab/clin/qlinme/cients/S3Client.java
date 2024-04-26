@@ -46,12 +46,12 @@ public class S3Client {
   }
 
   private List<String> listKeys(String bucket, String prefix) {
-    var request = ListObjectsRequest.builder().bucket(bucket).prefix(prefix).build();
+    var request = ListObjectsRequest.builder().bucket(bucket).prefix(prefix+"/").build();
     return s3Client.listObjects(request).contents().stream().map(S3Object::key).toList();
   }
 
   private List<S3Object> listObjects(String bucket, String prefix) {
-    var request = ListObjectsRequest.builder().bucket(bucket).prefix(prefix).build();
+    var request = ListObjectsRequest.builder().bucket(bucket).prefix(prefix+"/").build();
     return s3Client.listObjects(request).contents();
   }
 
@@ -64,7 +64,7 @@ public class S3Client {
   private void backupMetadata(String bucket, String batchId) {
     var key = batchId+ "/metadata.json";
     if(exists(bucket, key)) {
-      var previous = listKeys(bucket, BACKUP_FOLDER+"/"+batchId);
+      var previous = listKeys(bucket, BACKUP_FOLDER+"/"+batchId).stream().filter(f -> !f.endsWith("latest")).toList();
       var backupKey = BACKUP_FOLDER+"/"+batchId+"/metadata.json."+(previous.size()+1);
      copyObject(bucket, key, bucket, backupKey);
     }

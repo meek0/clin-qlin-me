@@ -27,8 +27,8 @@ public class BatchController {
 
 
   @OpenApi(
-    summary = "read metadata",
-    description = "Return current metadata by batch_id",
+    summary = "Get current metadata",
+    description = "Get current metadata by batch_id",
     operationId = "batchRead",
     path = Routes.BATCH,
     methods = HttpMethod.GET,
@@ -56,8 +56,8 @@ public class BatchController {
   }
 
   @OpenApi(
-    summary = "create or update metadata",
-    description = "Create or update the metadata of a batch by batch_id and validate content",
+    summary = "Upload metadata",
+    description = "Create or update the metadata by batch_id and validate content",
     operationId = "batchCreateUpdate",
     path = Routes.BATCH,
     methods = HttpMethod.POST,
@@ -100,8 +100,8 @@ public class BatchController {
   }
 
   @OpenApi(
-    summary = "status",
-    description = "Return status of the current batchs",
+    summary = "Get status",
+    description = "Return status of the batch by id",
     operationId = "batchStatus",
     path = Routes.BATCH_STATUS,
     methods = HttpMethod.GET,
@@ -120,13 +120,21 @@ public class BatchController {
   )
   public void batchStatus(Context ctx) {
     var batchId = Utils.getValidParamParam(ctx, "batch_id").get();
-    // TODO coder la status
-    ctx.json(new BatchStatus("not implemented"));
+    try {
+      var metadata = objectMapper.getMapper().readValue(s3Client.getMetadata(metadataBucket, batchId), Metadata.class);
+      var validation = metadataValidationService.validateMetadata(metadata, batchId);
+      var metadataStatus = validation.isValid() ? "OK" : "ERRORS";
+      var filestatus = "";
+      var status = "";
+      ctx.json(new BatchStatus(metadataStatus, filestatus, status));
+    } catch (Exception e) {
+      ctx.status(HttpStatus.NOT_FOUND);
+    }
   }
 
 
   @OpenApi(
-    summary = "history of versions",
+    summary = "Get previous versions",
     description = "Return previous versions of the metadata by batch id",
     operationId = "batchHistory",
     path = Routes.BATCH_HISTORY,
@@ -156,7 +164,7 @@ public class BatchController {
   }
 
   @OpenApi(
-    summary = "read version",
+    summary = "Get previous version",
     description = "Return a specific version of the metadata by batch id",
     operationId = "batchHistoryVersion",
     path = Routes.BATCH_HISTORY_BY_VERSION,

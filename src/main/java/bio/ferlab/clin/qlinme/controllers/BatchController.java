@@ -89,8 +89,13 @@ public class BatchController {
     if (!validation.isValid()) {
       ctx.status(HttpStatus.BAD_REQUEST).json(validation);
     }else {
-      s3Client.backupAndSaveMetadata(metadataBucket, batchId, ctx.body());
-      ctx.json(metadata);
+      try {
+        var validatedMetadata = objectMapper.getMapper().writerWithDefaultPrettyPrinter().writeValueAsString(metadata);
+        s3Client.backupAndSaveMetadata(metadataBucket, batchId, validatedMetadata);
+        ctx.json(metadata);
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
     }
   }
 

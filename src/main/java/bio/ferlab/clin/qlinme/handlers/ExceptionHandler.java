@@ -1,5 +1,6 @@
 package bio.ferlab.clin.qlinme.handlers;
 
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import io.javalin.http.Context;
 import io.javalin.http.HttpResponseException;
 import io.javalin.http.HttpStatus;
@@ -15,6 +16,8 @@ public class ExceptionHandler {
       ctx.status(HttpStatus.BAD_REQUEST.getCode()).json(ve.getErrors());
     } else if (e instanceof HttpResponseException re) {
       ctx.status(re.getStatus()).result(re.getMessage());
+    } else if (e instanceof InvalidFormatException re) {
+      ctx.status(HttpStatus.BAD_REQUEST).result(re.getMessage());
     } else {
       log.error("", e);
       ctx.status(HttpStatus.INTERNAL_SERVER_ERROR).result("internal server error");

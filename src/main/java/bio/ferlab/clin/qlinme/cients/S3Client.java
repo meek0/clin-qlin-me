@@ -99,6 +99,7 @@ public class S3Client {
       .filter(f -> !f.equals("metadata.json"))
       .filter(f -> !f.endsWith(".extra_results.tgz"))
       .filter(f -> !f.endsWith(".hpo"))
+      .filter(f -> !f.startsWith("logs/"))
       .toList();
   }
 }

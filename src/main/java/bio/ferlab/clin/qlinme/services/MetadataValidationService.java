@@ -2,8 +2,6 @@ package bio.ferlab.clin.qlinme.services;
 
 import bio.ferlab.clin.qlinme.model.Metadata;
 import bio.ferlab.clin.qlinme.model.MetadataValidation;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.*;
@@ -22,6 +20,7 @@ public class MetadataValidationService {
   private final List<String> sexValues = List.of("female", "male", "unknown");
   private final List<String> statusValues = List.of("AFF", "UNF", "UNK");
   private final List<String> versionValues = List.of("3.8.4", "4.2.4");
+  public static final List<String> fileKeys = List.of("cram", "crai", "snv_vcf", "snv_tbi", "cnv_vcf", "cnv_tbi", "sv_vcf", "sv_tbi", "supplement", "exomiser_html", "exomiser_json", "exomiser_variants_tsv", "seg_bw", "hard_filtered_baf_bw", "roh_bed", "hyper_exome_hg38_bed", "cnv_calls_png", "coverage_by_gene_csv", "qc_metrics");
 
   public MetadataValidation validateMetadata(Metadata m, String batchId) {
     var validation = new MetadataValidation();
@@ -30,66 +29,71 @@ public class MetadataValidationService {
       validateField("submissionSchema", m.submissionSchema(), validation, schemaValues);
       if (!m.analyses().isEmpty()) {
         validation.setAnalysesCount(m.analyses().size());
-        for (int ai = 0 ; ai < m.analyses().size() ; ai ++) {
+        for (int ai = 0; ai < m.analyses().size(); ai++) {
           var ana = m.analyses().get(ai);
-          var errorPrefix = "analyses["+ai+"]";
+          var errorPrefix = "analyses[" + ai + "]";
           String familyMember = null;
 
-          validateField(errorPrefix+".ldm", ana.ldm(), validation, ldmValues);
-          validateField(errorPrefix+".labAliquotId", ana.labAliquotId(), validation, null);
-          checkUnicity("labAliquotId", errorPrefix+".labAliquotId", ana.labAliquotId(), valuesByField, validation);
+          validateField(errorPrefix + ".ldm", ana.ldm(), validation, ldmValues);
+          validateField(errorPrefix + ".labAliquotId", ana.labAliquotId(), validation, null);
+          checkUnicity("labAliquotId", errorPrefix + ".labAliquotId", ana.labAliquotId(), valuesByField, validation);
 
           var panelCode = Optional.ofNullable(ana.analysisCode()).filter(StringUtils::isNotBlank).orElse(ana.panelCode());
-          validateField(errorPrefix+".panelCode", panelCode, validation, panelCodeValues);
+          validateField(errorPrefix + ".panelCode", panelCode, validation, panelCodeValues);
 
-          validateField(errorPrefix+".sampleType", ana.sampleType(), validation, sampleTypeValues);
-          validateField(errorPrefix+".specimenType", ana.specimenType(), validation, specimenTypeValues);
+          validateField(errorPrefix + ".sampleType", ana.sampleType(), validation, sampleTypeValues);
+          validateField(errorPrefix + ".specimenType", ana.specimenType(), validation, specimenTypeValues);
           if (ana.patient() != null) {
             var patient = ana.patient();
             familyMember = patient.familyMember();
-            validateField(errorPrefix+".patient.designFamily", patient.designFamily(), validation, designFamilyValues);
-            validateField(errorPrefix+".patient.ep", patient.ep(), validation, epValues);
-            validateField(errorPrefix+".patient.familyMember", familyMember, validation, familyMemberValues);
-            validateField(errorPrefix+".patient.fetus", String.valueOf(patient.fetus()), validation, fetusValues);
-            validateField(errorPrefix+".patient.sex", StringUtils.toRootLowerCase(patient.sex()), validation, sexValues);
-            validateField(errorPrefix+".patient.status", patient.status(), validation, statusValues);
-            validatePatient(errorPrefix+".patient", patient,validation);
-            validateFamilyId(errorPrefix+".patient", patient, validation);
-            checkUnicity("mrn",errorPrefix+".patient.mrn", patient.mrn(), valuesByField, validation);
-            checkUnicity("ramq", errorPrefix+".patient.ramq",patient.ramq(), valuesByField, validation);
+            validateField(errorPrefix + ".patient.designFamily", patient.designFamily(), validation, designFamilyValues);
+            validateField(errorPrefix + ".patient.ep", patient.ep(), validation, epValues);
+            validateField(errorPrefix + ".patient.familyMember", familyMember, validation, familyMemberValues);
+            validateField(errorPrefix + ".patient.fetus", String.valueOf(patient.fetus()), validation, fetusValues);
+            validateField(errorPrefix + ".patient.sex", StringUtils.toRootLowerCase(patient.sex()), validation, sexValues);
+            validateField(errorPrefix + ".patient.status", patient.status(), validation, statusValues);
+            validatePatient(errorPrefix + ".patient", patient, validation);
+            validateFamilyId(errorPrefix + ".patient", patient, validation);
+            checkUnicity("mrn", errorPrefix + ".patient.mrn", patient.mrn(), valuesByField, validation);
+            checkUnicity("ramq", errorPrefix + ".patient.ramq", patient.ramq(), valuesByField, validation);
           } else {
-            validation.addError(errorPrefix+".patient",  "is required");
+            validation.addError(errorPrefix + ".patient", "is required");
           }
 
           if (ana.experiment() != null) {
             var exp = ana.experiment();
-            validateField(errorPrefix+".experiment.runName", exp.runName(), validation, null);
-            validateRunName(errorPrefix+".experiment.runName", exp.runName(), validation, batchId);
+            validateField(errorPrefix + ".experiment.runName", exp.runName(), validation, null);
+            validateRunName(errorPrefix + ".experiment.runName", exp.runName(), validation, batchId);
           } else {
-            validation.addError(errorPrefix+".experiment",  "is required");
+            validation.addError(errorPrefix + ".experiment", "is required");
           }
 
           if (ana.workflow() != null) {
             var work = ana.workflow();
-            validateField(errorPrefix+".workflow.version", work.version(), validation, versionValues);
+            validateField(errorPrefix + ".workflow.version", work.version(), validation, versionValues);
           } else {
-            validation.addError(errorPrefix+".workflow",  "is required");
+            validation.addError(errorPrefix + ".workflow", "is required");
           }
 
           if (ana.files() != null) {
             var files = ana.files();
+            for(String fileKey: files.keySet()) {
+              if(!fileKeys.contains(fileKey)) {
+                validation.addError(errorPrefix + ".files."+fileKey, "Supported files are: "+ fileKeys);
+              }
+            }
             if ("MTH".equals(familyMember) || "FTH".equals(familyMember)) {
-              validateExomiser(errorPrefix+".files", files, validation);
+              validateExomiser(errorPrefix + ".files", files, validation);
             }
           } else {
-            validation.addError(errorPrefix+".files",  "is required");
+            validation.addError(errorPrefix + ".files", "is required");
           }
         }
       } else {
-        validation.addError("analyses",  "is required");
+        validation.addError("analyses", "is required");
       }
     } else {
-      validation.addError("metadata",  "is required");
+      validation.addError("metadata", "is required");
     }
     return validation;
   }
@@ -97,7 +101,7 @@ public class MetadataValidationService {
   private void validateField(String field, String value, MetadataValidation validation, List<String> values) {
     if (StringUtils.isBlank(value)) {
       if (values != null && !values.isEmpty()) {
-        validation.addError(field, "should be "+values);
+        validation.addError(field, "should be " + values);
       } else {
         validation.addError(field, "is missing");
       }
@@ -108,7 +112,7 @@ public class MetadataValidationService {
 
   private void validateRunName(String field, String runName, MetadataValidation validation, String batchId) {
     if (runName == null || !batchId.contains(runName)) {
-      validation.addError(field, "should be similar to batch_id: "+batchId);
+      validation.addError(field, "should be similar to batch_id: " + batchId);
     }
   }
 
@@ -124,8 +128,8 @@ public class MetadataValidationService {
     }
   }
 
-  private void validateExomiser(String field, Metadata.Files files, MetadataValidation validation) {
-    if (!StringUtils.isAllBlank(files.exomiser_html(), files.exomiser_json(), files.exomiser_variants_tsv())) {
+  private void validateExomiser(String field, Map<String, String> files, MetadataValidation validation) {
+    if (!StringUtils.isAllBlank(files.get("exomiser_html"), files.get("exomiser_json"), files.get("exomiser_variants_tsv"))) {
       validation.addError(field, "familyMember other than PROBAND|SIS|BRO should not have exomiser files");
     }
   }

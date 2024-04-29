@@ -23,25 +23,9 @@ public class FilesValidationService {
           var ana = m.analyses().get(ai);
           //var errorPrefix = "analyses["+ai+"]";
           if (ana.files() != null) {
-            validateFile(ana.files().crai(), files, validation, all);
-            validateFile(ana.files().cram(), files, validation, all);
-            validateFile(ana.files().sv_vcf(), files, validation, all);
-            validateFile(ana.files().sv_tbi(), files, validation, all);
-            validateFile(ana.files().cnv_vcf(), files, validation, all);
-            validateFile(ana.files().cnv_tbi(), files, validation, all);
-            validateFile(ana.files().cnv_calls_png(), files, validation, all);
-            validateFile(ana.files().coverage_by_gene_csv(), files, validation, all);
-            validateFile(ana.files().snv_vcf(), files, validation, all);
-            validateFile(ana.files().snv_tbi(), files, validation, all);
-            validateFile(ana.files().exomiser_json(), files, validation, all);
-            validateFile(ana.files().exomiser_html(), files, validation, all);
-            validateFile(ana.files().exomiser_variants_tsv(), files, validation, all);
-            validateFile(ana.files().supplement(), files, validation, all);
-            validateFile(ana.files().hard_filtered_baf_bw(), files, validation, all);
-            validateFile(ana.files().roh_bed(), files, validation, all);
-            validateFile(ana.files().hyper_exome_hg38_bed(), files, validation, all);
-            validateFile(ana.files().seg_bw(), files, validation, all);
-            validateFile(ana.files().qc_metrics(), files, validation, all);
+            for (String fileKey : MetadataValidationService.fileKeys) {
+              validateFile(ana.files().get(fileKey), files, validation, all);
+            }
           }
         }
       }

@@ -104,6 +104,7 @@ public class S3Client {
       .filter(f -> !f.endsWith(".extra_results.tgz"))
       .filter(f -> !f.endsWith(".hpo"))
       .filter(f -> !f.startsWith("logs/"))
+      .filter(f -> !f.toLowerCase().endsWith(".norm.vep.vcf.gz.tbi"))
       .toList();
   }
 }

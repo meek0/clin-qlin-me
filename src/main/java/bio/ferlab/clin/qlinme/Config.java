@@ -28,7 +28,7 @@ public class Config {
 
   public Config() {
     var rootLogger = ((ch.qos.logback.classic.Logger) LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME));
-    rootLogger.setLevel(Env.prod.equals(env) ? Level.ERROR : Level.INFO);
+    rootLogger.setLevel(Env.prod.equals(env) ? Level.ERROR : Env.qa.equals(env) ? Level.DEBUG : Level.INFO);
   }
 
   private Optional<String> getEnv(String name) {

@@ -3,6 +3,7 @@ package bio.ferlab.clin.qlinme.cients;
 import bio.ferlab.clin.qlinme.model.Metadata;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -96,6 +97,9 @@ public class S3Client {
 
   public List<String> listBatchFiles(String bucket, String batchId) {
     return listObjects(bucket, batchId).stream().map(o -> o.key().replace(batchId+"/", ""))
+      .filter(StringUtils::isNotBlank)
+      .filter(f -> !f.equals("_SUCCESS"))
+      .filter(f -> !f.endsWith(".md5sum"))
       .filter(f -> !f.equals("metadata.json"))
       .filter(f -> !f.endsWith(".extra_results.tgz"))
       .filter(f -> !f.endsWith(".hpo"))

@@ -3,11 +3,13 @@ package bio.ferlab.clin.qlinme.services;
 import bio.ferlab.clin.qlinme.model.FilesValidation;
 import bio.ferlab.clin.qlinme.model.Metadata;
 import bio.ferlab.clin.qlinme.model.MetadataValidation;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 public class FilesValidationService {
 
   public FilesValidation validateFiles(Metadata m, List<String> files) {
@@ -45,13 +47,13 @@ public class FilesValidationService {
       for(var file : files) {
         if(!all.contains(file)) {
           if ("CQGC_Germline".equals(m.submissionSchema())) {
-            if (!file.endsWith(".hard-filtered.formatted.norm.VEP.vcf.gz")) {
+            if (!file.toLowerCase().endsWith(".hard-filtered.formatted.norm.vep.vcf.gz")) {
               validation.addError(file + " not in metadata");
             }else {
               validation.setVcfsCount(validation.getVcfsCount()+1);
             }
           } else if ("CQGC_Exome_Tumeur_Seul".equals(m.submissionSchema())) {
-            if (!file.endsWith(".dragen.wes_somatic-tumor_only.hard-filtered.norm.vep.vcf.gz")) {
+            if (!file.toLowerCase().endsWith(".dragen.wes_somatic-tumor_only.hard-filtered.norm.vep.vcf.gz")) {
               validation.addError(file + " not in metadata");
             }else {
               validation.setVcfsCount(validation.getVcfsCount()+1);
@@ -62,6 +64,8 @@ public class FilesValidationService {
     } else {
       validation.addError("Files are missing");
     }
+    log.debug("Files in S3: {}", files);
+    log.debug("Files in metadata: {}", all);
     return validation;
   }
 

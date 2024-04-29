@@ -61,11 +61,11 @@ public class FilesValidationService {
           }
         }
       }
+      log.debug("Files in S3: {}", files.size());
+      log.debug("Files in metadata: {}", all.size());
     } else {
       validation.addError("Files are missing");
     }
-    log.debug("Files in S3: {}", files);
-    log.debug("Files in metadata: {}", all);
     return validation;
   }
 

@@ -20,7 +20,7 @@ import java.util.List;
 @Slf4j
 public class S3Client {
 
-  private static final int MAX_KEYS = 1000;
+  private static final int MAX_KEYS = 4500;
   private static final String BACKUP_FOLDER = ".backup";
   private final software.amazon.awssdk.services.s3.S3Client s3Client;
 

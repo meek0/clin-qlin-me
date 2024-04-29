@@ -20,6 +20,7 @@ import java.util.List;
 @Slf4j
 public class S3Client {
 
+  private static final int MAX_KEYS = 1000;
   private static final String BACKUP_FOLDER = ".backup";
   private final software.amazon.awssdk.services.s3.S3Client s3Client;
 
@@ -47,12 +48,11 @@ public class S3Client {
   }
 
   private List<String> listKeys(String bucket, String prefix) {
-    var request = ListObjectsRequest.builder().bucket(bucket).prefix(prefix+"/").build();
-    return s3Client.listObjects(request).contents().stream().map(S3Object::key).toList();
+    return listObjects(bucket, prefix).stream().map(S3Object::key).toList();
   }
 
   private List<S3Object> listObjects(String bucket, String prefix) {
-    var request = ListObjectsRequest.builder().bucket(bucket).prefix(prefix+"/").build();
+    var request = ListObjectsRequest.builder().bucket(bucket).prefix(prefix+"/").maxKeys(MAX_KEYS).build();
     return s3Client.listObjects(request).contents();
   }
 

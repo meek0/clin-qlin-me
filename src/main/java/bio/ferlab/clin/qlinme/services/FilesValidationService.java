@@ -37,8 +37,8 @@ public class FilesValidationService {
             validateFile(ana.files().exomiser_html(), files, validation, all);
             validateFile(ana.files().exomiser_variants_tsv(), files, validation, all);
             validateFile(ana.files().supplement(), files, validation, all);
-            validateFile(ana.files().coverage_by_gene_csv(), files, validation, all);
             validateFile(ana.files().hard_filtered_baf_bw(), files, validation, all);
+            validateFile(ana.files().roh_bed(), files, validation, all);
             validateFile(ana.files().hyper_exome_hg38_bed(), files, validation, all);
             validateFile(ana.files().seg_bw(), files, validation, all);
             validateFile(ana.files().qc_metrics(), files, validation, all);

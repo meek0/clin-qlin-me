@@ -22,11 +22,9 @@ public class Config {
 
   public final boolean securityEnabled = getEnv("SECURITY_ENABLED").map(Boolean::parseBoolean).orElse(true);
 
-  public final String keycloakUrl = getEnv("KEYCLOAK_URL").orElse("https://auth.qa.cqgc.hsj.rtss.qc.ca/realms/clin");
-  public final String keycloakClient = getEnv("KEYCLOAK_CLIENT").orElse("clin-client");
-  public final String keycloakAudience = getEnv("KEYCLOAK_AUDIENCE").orElse("clin-acl");
-
-  public final String serverBaseUrl = getEnv("SERVER_BASE_URL").orElse("http://localhost:8080");
+  public final String securityIssuer = getEnv("SECURITY_ISSUER").orElse("https://auth.qa.cqgc.hsj.rtss.qc.ca/realms/clin");
+  public final String securityClient = getEnv("SECURITY_CLIENT").orElse("clin-client");
+  public final String securityAudience = getEnv("SECURITY_AUDIENCE").orElse("clin-acl");
 
   public Config() {
     var rootLogger = ((ch.qos.logback.classic.Logger) LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME));

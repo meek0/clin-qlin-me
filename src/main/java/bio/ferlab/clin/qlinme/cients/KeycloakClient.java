@@ -27,8 +27,10 @@ public class KeycloakClient {
   private final ObjectMapper mapper = new ObjectMapper();
   private final HttpClient httpClient;
   private final String authUrl;
+  private final String client;
+  private final String audience;
 
-  public KeycloakClient(String url, int timeoutMs) {
+  public KeycloakClient(String url, String client, String audience, int timeoutMs) {
     var config = RequestConfig.custom()
       .setConnectTimeout(timeoutMs)
       .setConnectionRequestTimeout(timeoutMs)
@@ -36,13 +38,15 @@ public class KeycloakClient {
     httpClient = HttpClientBuilder.create()
       .setDefaultRequestConfig(config).build();
     this.authUrl = StringUtils.appendIfMissing(url, "/") + "protocol/openid-connect/token";
+    this.client = client;
+    this.audience = audience;
   }
 
   public String getAccessToken(String username, String password) throws IOException {
     var request = new HttpPost(authUrl);
 
     var form = new ArrayList<BasicNameValuePair>();
-    form.add(new BasicNameValuePair("client_id", App.config.keycloakClient));
+    form.add(new BasicNameValuePair("client_id", client));
     form.add(new BasicNameValuePair("grant_type", "password"));
     form.add(new BasicNameValuePair("username", username));
     form.add(new BasicNameValuePair("password", password));
@@ -56,7 +60,7 @@ public class KeycloakClient {
     request.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
 
     var form = new ArrayList<BasicNameValuePair>();
-    form.add(new BasicNameValuePair("audience", App.config.keycloakAudience));
+    form.add(new BasicNameValuePair("audience", audience));
     form.add(new BasicNameValuePair("grant_type", "urn:ietf:params:oauth:grant-type:uma-ticket"));
 
     request.setEntity(new UrlEncodedFormEntity(form, charset));

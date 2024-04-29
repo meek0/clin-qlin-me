@@ -7,7 +7,7 @@ services:
     ports:
       - '8080:8080'
     mem_limit: 512m
-    cpus: 0.5
+    cpus: 1
     environment:
       PORT: 8080
       AWS_ENDPOINT: http://minio:9000

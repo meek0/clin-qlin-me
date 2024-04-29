@@ -38,8 +38,8 @@ public class App {
   public static final ExceptionHandler exceptionHandler = new ExceptionHandler();
   public static final S3Client s3Client = new S3Client(config.awsEndpoint, config.awsAccessKey, config.awsSecretKey, 15000);
   //public static final FhirClient fhirClient = new FhirClient(config.fhirUrl, 15000, 20);
-  public static final KeycloakClient keycloakClient = new KeycloakClient(config.keycloakUrl, 15000);
-  public static final SecurityHandler securityHandler = new SecurityHandler(config.keycloakUrl, config.keycloakAudience, config.securityEnabled);
+  public static final KeycloakClient keycloakClient = new KeycloakClient(config.securityIssuer, config.securityClient, config.securityAudience, 15000);
+  public static final SecurityHandler securityHandler = new SecurityHandler(config.securityIssuer, config.securityAudience, config.securityEnabled);
   public static final AuthController authController = new AuthController(keycloakClient);
   public static final MetadataValidationService metadataValidationService = new MetadataValidationService();
   public static final FilesValidationService filesValidationService = new FilesValidationService();

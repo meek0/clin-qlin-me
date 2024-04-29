@@ -15,12 +15,13 @@ import software.amazon.awssdk.services.s3.model.*;
 import java.io.IOException;
 import java.net.URI;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
 public class S3Client {
 
-  private static final int MAX_KEYS = 4500;
+  private static final int MAX_KEYS = 1000;
   private static final String BACKUP_FOLDER = ".backup";
   private final software.amazon.awssdk.services.s3.S3Client s3Client;
 
@@ -52,8 +53,17 @@ public class S3Client {
   }
 
   private List<S3Object> listObjects(String bucket, String prefix) {
-    var request = ListObjectsRequest.builder().bucket(bucket).prefix(prefix+"/").maxKeys(MAX_KEYS).build();
-    return s3Client.listObjects(request).contents();
+    List<S3Object> s3Objects = new ArrayList<>();
+    ListObjectsV2Response lastResult = null;
+    while(lastResult == null || lastResult.isTruncated()) {
+      var request = ListObjectsV2Request.builder().bucket(bucket).prefix(prefix+"/").maxKeys(MAX_KEYS);
+      if (lastResult !=null && lastResult.isTruncated()) {
+        request.continuationToken(lastResult.nextContinuationToken());
+      }
+      lastResult = s3Client.listObjectsV2(request.build());
+      s3Objects.addAll(lastResult.contents());
+    }
+    return s3Objects;
   }
 
   private void copyObject(String srcBucket, String srKey, String destBucket, String destKey) {

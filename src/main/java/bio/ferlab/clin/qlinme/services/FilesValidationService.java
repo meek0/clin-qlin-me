@@ -16,7 +16,7 @@ public class FilesValidationService {
     var validation = new FilesValidation();
     var all = new ArrayList<String>();
     if (files != null && !files.isEmpty()) {
-      log.debug("Files in S3: {}", files);
+      log.debug("Files in S3: {}", files.size());
       validation.setFilesCount(files.size());
       if (m.analyses() != null) {
         for (int ai = 0 ; ai < m.analyses().size() ; ai ++) {

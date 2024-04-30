@@ -35,6 +35,8 @@ public class MetadataValidationService {
           String familyMember = null;
 
           validateField(errorPrefix + ".ldm", ana.ldm(), validation, ldmValues);
+          validateField(errorPrefix + ".ldmSpecimenId", ana.ldmSpecimenId(), validation, null);
+          validateField(errorPrefix + ".ldmSampleId", ana.ldmSampleId(), validation, null);
           validateField(errorPrefix + ".labAliquotId", ana.labAliquotId(), validation, null);
           checkUnicity("labAliquotId", errorPrefix + ".labAliquotId", ana.labAliquotId(), valuesByField, validation);
 
@@ -42,15 +44,19 @@ public class MetadataValidationService {
           validateField(errorPrefix + ".panelCode", panelCode, validation, panelCodeValues);
 
           validateField(errorPrefix + ".sampleType", ana.sampleType(), validation, sampleTypeValues);
+          validateField(errorPrefix + ".ldmServiceRequestId", ana.ldmServiceRequestId(), validation, null);
           validateField(errorPrefix + ".specimenType", ana.specimenType(), validation, specimenTypeValues);
           if (ana.patient() != null) {
             var patient = ana.patient();
             familyMember = patient.familyMember();
+            validateField(errorPrefix + ".patient.firstName", patient.firstName(), validation, null);
+            validateField(errorPrefix + ".patient.lastName", patient.lastName(), validation, null);
             validateField(errorPrefix + ".patient.designFamily", patient.designFamily(), validation, designFamilyValues);
             validateField(errorPrefix + ".patient.ep", patient.ep(), validation, epValues);
             validateField(errorPrefix + ".patient.familyMember", familyMember, validation, familyMemberValues);
             validateField(errorPrefix + ".patient.fetus", String.valueOf(patient.fetus()), validation, fetusValues);
             validateField(errorPrefix + ".patient.sex", StringUtils.toRootLowerCase(patient.sex()), validation, sexValues);
+            validateField(errorPrefix + ".patient.birthDate", patient.birthDate(), validation, null);
             validateField(errorPrefix + ".patient.status", patient.status(), validation, statusValues);
             validatePatient(errorPrefix + ".patient", patient, validation);
             validateFamilyId(errorPrefix + ".patient", patient, validation);
@@ -62,15 +68,27 @@ public class MetadataValidationService {
 
           if (ana.experiment() != null) {
             var exp = ana.experiment();
+            validateField(errorPrefix + ".experiment.platform", exp.platform(), validation, null);
+            validateField(errorPrefix + ".experiment.sequencerId", exp.sequencerId(), validation, null);
             validateField(errorPrefix + ".experiment.runName", exp.runName(), validation, null);
             validateRunName(errorPrefix + ".experiment.runName", exp.runName(), validation, batchId);
+            validateField(errorPrefix + ".experiment.runDate", exp.runDate(), validation, null);
+            validateField(errorPrefix + ".experiment.runAlias", exp.runAlias(), validation, null);
+            validateField(errorPrefix + ".experiment.flowcellId", exp.flowcellId(), validation, null);
+            validateField(errorPrefix + ".experiment.isPairedEnd", (exp.isPairedEnd() != null) ? String.valueOf(exp.isPairedEnd()) : null, validation, null);
+            validateField(errorPrefix + ".experiment.fragmentSize", (exp.fragmentSize() != null) ? String.valueOf(exp.fragmentSize()) : null, validation, null);
+            validateField(errorPrefix + ".experiment.experimentalStrategy", exp.experimentalStrategy(), validation, null);
+            validateField(errorPrefix + ".experiment.captureKit", exp.captureKit(), validation, null);
+            validateField(errorPrefix + ".experiment.baitDefinition", exp.baitDefinition(), validation, null);
           } else {
             validation.addError(errorPrefix + ".experiment", "is required");
           }
 
           if (ana.workflow() != null) {
             var work = ana.workflow();
+            validateField(errorPrefix + ".workflow.name", work.name(), validation, null);
             validateField(errorPrefix + ".workflow.version", work.version(), validation, versionValues);
+            validateField(errorPrefix + ".workflow.genomeBuild", work.genomeBuild(), validation, null);
           } else {
             validation.addError(errorPrefix + ".workflow", "is required");
           }

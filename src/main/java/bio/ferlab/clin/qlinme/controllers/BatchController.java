@@ -6,6 +6,7 @@ import bio.ferlab.clin.qlinme.cients.S3Client;
 import bio.ferlab.clin.qlinme.model.*;
 import bio.ferlab.clin.qlinme.services.FilesValidationService;
 import bio.ferlab.clin.qlinme.services.MetadataValidationService;
+import bio.ferlab.clin.qlinme.services.VCFsValidationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.http.ContentType;
 import io.javalin.http.Context;
@@ -27,8 +28,8 @@ public class BatchController {
   private final String metadataBucket;
   private final MetadataValidationService metadataValidationService;
   private final FilesValidationService filesValidationService;
+  private final VCFsValidationService vcFsValidationService;
   private final JavalinJackson objectMapper;
-
 
   @OpenApi(
     summary = "Get current metadata",
@@ -128,9 +129,11 @@ public class BatchController {
     try {
       var metadata = objectMapper.getMapper().readValue(s3Client.getMetadata(metadataBucket, batchId), Metadata.class);
       var metadataValidation = metadataValidationService.validateMetadata(metadata, batchId);
-      var filesValidation = filesValidationService.validateFiles(metadata, s3Client.listBatchFiles(metadataBucket, batchId));
-      var status = (metadataValidation.isValid() & filesValidation.isValid()) ? "READY_TO_IMPORT" : "ERRORS";
-      ctx.json(new BatchStatus(status, metadataValidation, filesValidation));
+      var s3Files = s3Client.listBatchFiles(metadataBucket, batchId);
+      var filesValidation = filesValidationService.validateFiles(metadata, s3Files);
+      var vcfsValidation = vcFsValidationService.validate(metadata, batchId, s3Files);
+      var status = (metadataValidation.isValid() & filesValidation.isValid() & vcfsValidation.isValid()) ? "READY_TO_IMPORT" : "ERRORS";
+      ctx.json(new BatchStatus(status, metadataValidation, filesValidation, vcfsValidation));
     } catch (NoSuchKeyException e) {
       ctx.status(HttpStatus.NOT_FOUND);
     } catch (Exception e) {

@@ -9,40 +9,27 @@ import org.apache.commons.lang3.StringUtils;
 import java.util.ArrayList;
 import java.util.List;
 
-@Slf4j
 public class FilesValidationService {
 
   public FilesValidation validateFiles(Metadata m, List<String> files) {
     var validation = new FilesValidation();
     var all = new ArrayList<String>();
     if (files != null && !files.isEmpty()) {
-      log.debug("Files in S3: {}", files.size());
-      validation.setFilesCount(files.size());
+      validation.setCount(files.size());
       if (m.analyses() != null) {
         for (int ai = 0 ; ai < m.analyses().size() ; ai ++) {
           var ana = m.analyses().get(ai);
-          //var errorPrefix = "analyses["+ai+"]";
           if (ana.files() != null) {
-            for (String fileKey : MetadataValidationService.fileKeys) {
-              validateFile(ana.files().get(fileKey), files, validation, all);
+            for (var fileKey : MetadataValidationService.Files.values()) {
+              validateFile(ana.files().get(fileKey.name()), files, validation, all);
             }
           }
         }
       }
       for(var file : files) {
         if(!all.contains(file)) {
-          if ("CQGC_Germline".equals(m.submissionSchema())) {
-            if (!file.toLowerCase().endsWith(".hard-filtered.formatted.norm.vep.vcf.gz")) {
-              validation.addError(file + " not in metadata");
-            }else {
-              validation.setVcfsCount(validation.getVcfsCount()+1);
-            }
-          } else if ("CQGC_Exome_Tumeur_Seul".equals(m.submissionSchema())) {
-            if (!file.toLowerCase().endsWith(".dragen.wes_somatic-tumor_only.hard-filtered.norm.vep.vcf.gz")) {
-              validation.addError(file + " not in metadata");
-            }else {
-              validation.setVcfsCount(validation.getVcfsCount()+1);
-            }
+          if (!VCFsValidationService.isVCF(m, file)) {
+            validation.addError(file + " not in metadata");
           }
         }
       }

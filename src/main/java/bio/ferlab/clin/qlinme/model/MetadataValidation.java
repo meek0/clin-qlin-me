@@ -9,7 +9,8 @@ import java.util.*;
 
 @Getter
 public class MetadataValidation {
-
+  @Setter
+  private String schema;
   @Setter
   private int analysesCount = 0;
   private final Map<String, List<String>> errors = new LinkedHashMap<>();

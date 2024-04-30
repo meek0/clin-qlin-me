@@ -10,8 +10,10 @@ import bio.ferlab.clin.qlinme.handlers.HealthCheckHandler;
 import bio.ferlab.clin.qlinme.handlers.SecurityHandler;
 import bio.ferlab.clin.qlinme.handlers.Slf4jRequestLogger;
 import bio.ferlab.clin.qlinme.model.FilesValidation;
+import bio.ferlab.clin.qlinme.model.VCFsValidation;
 import bio.ferlab.clin.qlinme.services.FilesValidationService;
 import bio.ferlab.clin.qlinme.services.MetadataValidationService;
+import bio.ferlab.clin.qlinme.services.VCFsValidationService;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -43,7 +45,8 @@ public class App {
   public static final AuthController authController = new AuthController(keycloakClient);
   public static final MetadataValidationService metadataValidationService = new MetadataValidationService();
   public static final FilesValidationService filesValidationService = new FilesValidationService();
-  public static final BatchController batchController = new BatchController(s3Client, config.awsBucket, metadataValidationService, filesValidationService, objectMapper);
+  public static final VCFsValidationService vcfsValidationService = new VCFsValidationService(config.awsBucket, s3Client);
+  public static final BatchController batchController = new BatchController(s3Client, config.awsBucket, metadataValidationService, filesValidationService, vcfsValidationService, objectMapper);
 
   public static void main(String[] args) {
     var app = Javalin.create(conf -> {

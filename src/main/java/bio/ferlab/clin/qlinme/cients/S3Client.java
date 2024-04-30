@@ -1,11 +1,11 @@
 package bio.ferlab.clin.qlinme.cients;
 
-import bio.ferlab.clin.qlinme.model.Metadata;
-import lombok.RequiredArgsConstructor;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.regions.Region;
@@ -23,6 +23,8 @@ public class S3Client {
 
   private static final int MAX_KEYS = 1000;
   private static final String BACKUP_FOLDER = ".backup";
+
+  @Getter
   private final software.amazon.awssdk.services.s3.S3Client s3Client;
 
   public S3Client(String url, String accessKey, String secretKey, int timeoutMs) {
@@ -117,4 +119,5 @@ public class S3Client {
       .filter(f -> !f.toLowerCase().endsWith(".norm.vep.vcf.gz.tbi"))
       .toList();
   }
+
 }

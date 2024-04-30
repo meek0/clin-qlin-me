@@ -8,7 +8,33 @@ import java.util.*;
 
 public class MetadataValidationService {
 
-  private final List<String> schemaValues = List.of("CQGC_Germline", "CQGC_Exome_Tumeur_Seul");
+  public enum SchemaValues {
+      CQGC_Germline, CQGC_Exome_Tumeur_Seul
+  }
+
+  public enum Files {
+    cram,
+    crai,
+    snv_vcf,
+    snv_tbi,
+    cnv_vcf,
+    cnv_tbi,
+    sv_vcf,
+    sv_tbi,
+    supplement,
+    exomiser_html,
+    exomiser_json,
+    exomiser_variants_tsv,
+    seg_bw,
+    hard_filtered_baf_bw,
+    roh_bed,
+    hyper_exome_hg38_bed,
+    cnv_calls_png,
+    coverage_by_gene_csv,
+    qc_metrics
+  }
+
+  private final List<String> schemaValues =  Arrays.stream(SchemaValues.values()).map(Enum::name).toList();
   private final List<String> ldmValues = List.of("LDM-CHUSJ", "LDM-CHUS", "LDM-CUSM");
   private final List<String> panelCodeValues = List.of("MMG", "DYSM", "RHAB", "MITN", "MYOC", "MYAC", "HYPM", "RGDI", "POLYM", "TRATU", "EXTUM", "EXNOR", "TUPED", "TUHEM");
   private final List<String> sampleTypeValues = List.of("DNA");
@@ -19,14 +45,15 @@ public class MetadataValidationService {
   private final List<String> fetusValues = List.of("false", "null");
   private final List<String> sexValues = List.of("female", "male", "unknown");
   private final List<String> statusValues = List.of("AFF", "UNF", "UNK");
-  private final List<String> versionValues = List.of("3.8.4", "4.2.4");
-  public static final List<String> fileKeys = List.of("cram", "crai", "snv_vcf", "snv_tbi", "cnv_vcf", "cnv_tbi", "sv_vcf", "sv_tbi", "supplement", "exomiser_html", "exomiser_json", "exomiser_variants_tsv", "seg_bw", "hard_filtered_baf_bw", "roh_bed", "hyper_exome_hg38_bed", "cnv_calls_png", "coverage_by_gene_csv", "qc_metrics");
+  private final List<String> versionValues = List.of("3.8.4","3.10.4", "4.2.4");
+  private final List<String> fileKeys =  Arrays.stream(Files.values()).map(Enum::name).toList();
 
   public MetadataValidation validateMetadata(Metadata m, String batchId) {
     var validation = new MetadataValidation();
     Map<String, List<String>> valuesByField = new TreeMap<>();
     if (m != null) {
       validateField("submissionSchema", m.submissionSchema(), validation, schemaValues);
+      validation.setSchema(m.submissionSchema());
       if (!m.analyses().isEmpty()) {
         validation.setAnalysesCount(m.analyses().size());
         for (int ai = 0; ai < m.analyses().size(); ai++) {
@@ -96,6 +123,7 @@ public class MetadataValidationService {
           if (ana.files() != null) {
             var files = ana.files();
             for(String fileKey: files.keySet()) {
+
               if(!fileKeys.contains(fileKey)) {
                 validation.addError(errorPrefix + ".files."+fileKey, "Supported files are: "+ fileKeys);
               }
@@ -124,13 +152,13 @@ public class MetadataValidationService {
         validation.addError(field, "is missing");
       }
     } else if (values != null && !values.contains(value)) {
-      validation.addError(field, "should be " + values);
+      validation.addError(field, value + " should be " + values);
     }
   }
 
   private void validateRunName(String field, String runName, MetadataValidation validation, String batchId) {
-    if (runName == null || !batchId.contains(runName)) {
-      validation.addError(field, "should be similar to batch_id: " + batchId);
+    if (runName != null && !batchId.contains(runName)) {
+      validation.addError(field, runName + " should be similar to batch_id: " + batchId);
     }
   }
 
@@ -147,7 +175,7 @@ public class MetadataValidationService {
   }
 
   private void validateExomiser(String field, Map<String, String> files, MetadataValidation validation) {
-    if (!StringUtils.isAllBlank(files.get("exomiser_html"), files.get("exomiser_json"), files.get("exomiser_variants_tsv"))) {
+    if (!StringUtils.isAllBlank(files.get(Files.exomiser_html.name()), files.get(Files.exomiser_json.name()), files.get(Files.exomiser_variants_tsv.name()))) {
       validation.addError(field, "familyMember other than PROBAND|SIS|BRO should not have exomiser files");
     }
   }

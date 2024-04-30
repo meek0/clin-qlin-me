@@ -36,6 +36,7 @@ public class MetadataValidationService {
 
           validateField(errorPrefix + ".ldm", ana.ldm(), validation, ldmValues);
           validateField(errorPrefix + ".ldmSpecimenId", ana.ldmSpecimenId(), validation, null);
+          validateField(errorPrefix + ".ldmSampleId", ana.ldmSampleId(), validation, null);
           validateField(errorPrefix + ".labAliquotId", ana.labAliquotId(), validation, null);
           checkUnicity("labAliquotId", errorPrefix + ".labAliquotId", ana.labAliquotId(), valuesByField, validation);
 

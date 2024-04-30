@@ -184,8 +184,8 @@ public class BatchController {
     },
     responses = {
       @OpenApiResponse(status = "200", content = @OpenApiContent(from = Metadata.class)),
-      @OpenApiResponse(status = "400", content = @OpenApiContent(from = MetadataValidation.class)),
       @OpenApiResponse(status = "403"),
+      @OpenApiResponse(status = "404"),
     }
   )
   public void batchHistoryByVersion(Context ctx) {

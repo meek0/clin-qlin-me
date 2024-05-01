@@ -2,7 +2,10 @@ package bio.ferlab.clin.qlinme.services;
 
 import bio.ferlab.clin.qlinme.model.Metadata;
 import bio.ferlab.clin.qlinme.model.MetadataValidation;
+import bio.ferlab.clin.qlinme.utils.DateUtils;
+import bio.ferlab.clin.qlinme.utils.NameUtils;
 import org.apache.commons.lang3.StringUtils;
+import software.amazon.awssdk.services.s3.endpoints.internal.Value;
 
 import java.util.*;
 
@@ -34,12 +37,20 @@ public class MetadataValidationService {
     qc_metrics
   }
 
+  enum SpecimenType {
+    NBL, TUMOR
+  }
+
+  enum DesignFamily {
+    SOLO, DUO, TRIO,
+  }
+
   private final List<String> schemaValues =  Arrays.stream(SchemaValues.values()).map(Enum::name).toList();
   private final List<String> ldmValues = List.of("LDM-CHUSJ", "LDM-CHUS", "LDM-CUSM");
   private final List<String> panelCodeValues = List.of("MMG", "DYSM", "RHAB", "MITN", "MYOC", "MYAC", "HYPM", "RGDI", "POLYM", "TRATU", "EXTUM", "EXNOR", "TUPED", "TUHEM");
   private final List<String> sampleTypeValues = List.of("DNA");
-  private final List<String> specimenTypeValues = List.of("NBL", "TUMOR");
-  private final List<String> designFamilyValues = List.of("SOLO", "DUO", "TRIO");
+  private final List<String> specimenTypeValues = Arrays.stream(SpecimenType.values()).map(Enum::name).toList();
+  private final List<String> designFamilyValues = Arrays.stream(DesignFamily.values()).map(Enum::name).toList();
   private final List<String> epValues = List.of("CHUSJ", "CHUS", "CUSM");
   private final List<String> familyMemberValues = List.of("PROBAND", "MTH", "FTH", "SIS", "BRO");
   private final List<String> fetusValues = List.of("false", "null");
@@ -48,9 +59,12 @@ public class MetadataValidationService {
   private final List<String> versionValues = List.of("3.8.4","3.10.4", "4.2.4");
   private final List<String> fileKeys =  Arrays.stream(Files.values()).map(Enum::name).toList();
 
+  record Family(String designFamily, List<String> members){}
+
   public MetadataValidation validateMetadata(Metadata m, String batchId) {
     var validation = new MetadataValidation();
     Map<String, List<String>> valuesByField = new TreeMap<>();
+    Map<String, Family>families = new TreeMap<>();
     if (m != null) {
       validateField("submissionSchema", m.submissionSchema(), validation, schemaValues);
       validation.setSchema(m.submissionSchema());
@@ -73,22 +87,29 @@ public class MetadataValidationService {
           validateField(errorPrefix + ".sampleType", ana.sampleType(), validation, sampleTypeValues);
           validateField(errorPrefix + ".ldmServiceRequestId", ana.ldmServiceRequestId(), validation, null);
           validateField(errorPrefix + ".specimenType", ana.specimenType(), validation, specimenTypeValues);
+          validateSpecimenType(errorPrefix + ".specimenType", m, ana.specimenType(), validation);
           if (ana.patient() != null) {
             var patient = ana.patient();
             familyMember = patient.familyMember();
             validateField(errorPrefix + ".patient.firstName", patient.firstName(), validation, null);
+            validateSpecialCharacters(errorPrefix+ ".patient.firstName", patient.firstName(), validation);
             validateField(errorPrefix + ".patient.lastName", patient.lastName(), validation, null);
+            validateSpecialCharacters(errorPrefix+ ".patient.lastName", patient.lastName(), validation);
             validateField(errorPrefix + ".patient.designFamily", patient.designFamily(), validation, designFamilyValues);
             validateField(errorPrefix + ".patient.ep", patient.ep(), validation, epValues);
             validateField(errorPrefix + ".patient.familyMember", familyMember, validation, familyMemberValues);
             validateField(errorPrefix + ".patient.fetus", String.valueOf(patient.fetus()), validation, fetusValues);
             validateField(errorPrefix + ".patient.sex", StringUtils.toRootLowerCase(patient.sex()), validation, sexValues);
             validateField(errorPrefix + ".patient.birthDate", patient.birthDate(), validation, null);
+            validateDate(errorPrefix+ ".patient.birthDate", patient.birthDate(), validation, DateUtils.DDMMYYYY);
             validateField(errorPrefix + ".patient.status", patient.status(), validation, statusValues);
             validatePatient(errorPrefix + ".patient", patient, validation);
             validateFamilyId(errorPrefix + ".patient", patient, validation);
             checkUnicity("mrn", errorPrefix + ".patient.mrn", patient.mrn(), valuesByField, validation);
+            validateSpecialCharacters(errorPrefix+ ".patient.mrn", patient.mrn(), validation);
             checkUnicity("ramq", errorPrefix + ".patient.ramq", patient.ramq(), valuesByField, validation);
+            validateRamq(errorPrefix + ".patient.ramq", patient.ramq(), validation);
+            updateFamilies(patient, families);
           } else {
             validation.addError(errorPrefix + ".patient", "is required");
           }
@@ -100,6 +121,7 @@ public class MetadataValidationService {
             validateField(errorPrefix + ".experiment.runName", exp.runName(), validation, null);
             validateRunName(errorPrefix + ".experiment.runName", exp.runName(), validation, batchId);
             validateField(errorPrefix + ".experiment.runDate", exp.runDate(), validation, null);
+            validateDate(errorPrefix+ ".experiment.runDate", exp.runDate(), validation, DateUtils.DDMMYYYY, DateUtils.YYYYMMDD);
             validateField(errorPrefix + ".experiment.runAlias", exp.runAlias(), validation, null);
             validateField(errorPrefix + ".experiment.flowcellId", exp.flowcellId(), validation, null);
             validateField(errorPrefix + ".experiment.isPairedEnd", (exp.isPairedEnd() != null) ? String.valueOf(exp.isPairedEnd()) : null, validation, null);
@@ -141,7 +163,51 @@ public class MetadataValidationService {
     } else {
       validation.addError("metadata", "is required");
     }
+    validateFamilies(families, validation);
     return validation;
+  }
+
+  private void validateFamilies(Map<String, Family> families, MetadataValidation validation) {
+    for(var familyId: families.keySet()) {
+      var family = families.get(familyId);
+      if (family.members.size() == 1 ) {
+        validation.addError("Family."+familyId, "should be SOLO or have more than one familyMember: "+family.members);
+      }
+      if (new TreeSet(family.members).size() != family.members.size()) {
+        validation.addError("Family."+familyId, "should have distinct familyMembers: "+family.members);
+      }
+      if (!family.members.contains("PROBAND")) {
+        validation.addError("Family."+familyId, "should have at least one PROBAND: "+family.members);
+      }
+    }
+  }
+
+  private void updateFamilies(Metadata.Patient patient, Map<String, Family> families) {
+    if(!DesignFamily.SOLO.name().equals(patient.designFamily())) {
+      if (!families.containsKey(patient.familyId())) {
+        families.put(patient.familyId(), new Family(patient.designFamily(), new ArrayList<>()));
+      }
+      families.get(patient.familyId()).members().add(patient.familyMember());
+    }
+  }
+
+  private void validateSpecimenType(String field, Metadata m, String specimenType, MetadataValidation validation) {
+    if(StringUtils.isNoneBlank(m.submissionSchema(), specimenType)) {
+      if (SchemaValues.CQGC_Germline.name().equals(m.submissionSchema()) && !SpecimenType.NBL.name().equals(specimenType)) {
+        validation.addError(field, "should be: NBL for schema: "+SchemaValues.CQGC_Germline);
+      }
+      if (SchemaValues.CQGC_Exome_Tumeur_Seul.name().equals(m.submissionSchema()) && !SpecimenType.TUMOR.name().equals(specimenType)) {
+        validation.addError(field, "should be: TUMOR for schema: "+SchemaValues.CQGC_Exome_Tumeur_Seul);
+      }
+    }
+  }
+
+  private void validateDate(String field, String value, MetadataValidation validation, String...formats) {
+    if(StringUtils.isNotBlank(value)) {
+      if(!DateUtils.isValid(value, formats)) {
+        validation.addError(field, "should be formatted like: " + String.join(" or ", formats));
+      }
+    }
   }
 
   private void validateField(String field, String value, MetadataValidation validation, List<String> values) {
@@ -162,6 +228,22 @@ public class MetadataValidationService {
     }
   }
 
+  private void validateSpecialCharacters(String field, String value, MetadataValidation validation) {
+    if(StringUtils.isNotBlank(value)) {
+      if(StringUtils.length(value) < 2 || !NameUtils.hasNoSpecialCharacters(value)){
+        validation.addError(field, "should have length > 2 and no special characters, cf. regex: "+NameUtils.NO_SPECIAL_CHARACTERS);
+      }
+    }
+  }
+
+  private void validateRamq(String field, String value, MetadataValidation validation) {
+    if (StringUtils.isNotBlank(value)) {
+      if(!NameUtils.isValidRamq(value)){
+        validation.addError(field, "should be a valid RAMQ number");
+      }
+    }
+  }
+
   private void validatePatient(String field, Metadata.Patient patient, MetadataValidation validation) {
     if (StringUtils.isAllBlank(patient.mrn(), patient.ramq())) {
       validation.addError(field, "should have mrn or ramq or both");
@@ -169,7 +251,7 @@ public class MetadataValidationService {
   }
 
   private void validateFamilyId(String field, Metadata.Patient patient, MetadataValidation validation) {
-    if ("SOLO".equals(patient.designFamily()) && StringUtils.isNotBlank(patient.familyId())) {
+    if (DesignFamily.SOLO.name().equals(patient.designFamily()) && StringUtils.isNotBlank(patient.familyId())) {
       validation.addError(field, "designFamily SOLO should not have familyId");
     }
   }

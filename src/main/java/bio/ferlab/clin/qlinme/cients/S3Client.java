@@ -15,14 +15,18 @@ import software.amazon.awssdk.services.s3.model.*;
 import java.io.IOException;
 import java.net.URI;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class S3Client {
 
   private static final int MAX_KEYS = 1000;
   private static final String BACKUP_FOLDER = ".backup";
+  private static final String CACHE_FOLDER = ".cache";
 
   @Getter
   private final software.amazon.awssdk.services.s3.S3Client s3Client;
@@ -105,6 +109,22 @@ public class S3Client {
     var backupKey = BACKUP_FOLDER+"/"+batchId+"/metadata.json."+version;
     var request = GetObjectRequest.builder().bucket(bucket).key(backupKey).build();
     return s3Client.getObject(request).readAllBytes();
+  }
+
+  public byte[] getCachedVCFAliquotIDs(String bucket, String key, Instant lastModified) throws IOException {
+    var backupKey = formatCachedVCFAliquotIDsKey(key, lastModified.toString());
+    var request = GetObjectRequest.builder().bucket(bucket).key(backupKey).build();
+    return s3Client.getObject(request).readAllBytes();
+  }
+
+  public void setCachedVCFAliquotIDs(String bucket, String key, Instant lastModified, List<String> ids) throws IOException {
+    var backupKey = formatCachedVCFAliquotIDsKey(key, lastModified.toString());
+    var request = PutObjectRequest.builder().bucket(bucket).key(backupKey).build();
+    s3Client.putObject(request, RequestBody.fromString(String.join(",", ids)));
+  }
+
+  private String formatCachedVCFAliquotIDsKey(String key, String lastModified) {
+    return CACHE_FOLDER+"/"+key+"."+lastModified+".aliquots";
   }
 
   public List<String> listBatchFiles(String bucket, String batchId) {

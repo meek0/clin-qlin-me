@@ -16,6 +16,7 @@ import io.javalin.openapi.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.HttpHeaders;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 
 import java.util.List;
@@ -39,7 +40,7 @@ public class BatchController {
     methods = HttpMethod.GET,
     tags = {"Batch"},
     headers = {
-      @OpenApiParam(name = "Authorization", required = true),
+      @OpenApiParam(name = "Authorization", example = "Bearer aaa.bbb.ccc", required = true),
     },
     pathParams = {
       @OpenApiParam(name = "batch_id", required = true),
@@ -69,7 +70,7 @@ public class BatchController {
     methods = HttpMethod.POST,
     tags = {"Batch"},
     headers = {
-      @OpenApiParam(name = "Authorization", required = true),
+      @OpenApiParam(name = "Authorization", example = "Bearer aaa.bbb.ccc", required = true),
     },
     pathParams = {
       @OpenApiParam(name = "batch_id", required = true),
@@ -113,7 +114,8 @@ public class BatchController {
     methods = HttpMethod.GET,
     tags = {"Batch"},
     headers = {
-      @OpenApiParam(name = "Authorization", required = true),
+      @OpenApiParam(name = "Authorization", example = "Bearer aaa.bbb.ccc", required = true),
+      @OpenApiParam(name = HttpHeaders.CACHE_CONTROL , description = "Ignore and refresh previous cached validations", example = "no-cache")
     },
     pathParams = {
       @OpenApiParam(name = "batch_id", required = true),
@@ -126,12 +128,13 @@ public class BatchController {
   )
   public void batchStatus(Context ctx) {
     var batchId = Utils.getValidParamParam(ctx, "batch_id").get();
+    var allowCache = !"no-cache".equals(ctx.header(HttpHeaders.CACHE_CONTROL));
     try {
       var metadata = objectMapper.getMapper().readValue(s3Client.getMetadata(metadataBucket, batchId), Metadata.class);
       var metadataValidation = metadataValidationService.validateMetadata(metadata, batchId);
       var s3Files = s3Client.listBatchFiles(metadataBucket, batchId);
       var filesValidation = filesValidationService.validateFiles(metadata, s3Files);
-      var vcfsValidation = vcFsValidationService.validate(metadata, batchId, s3Files);
+      var vcfsValidation = vcFsValidationService.validate(metadata, batchId, s3Files, allowCache);
       var status = (metadataValidation.isValid() & filesValidation.isValid() & vcfsValidation.isValid()) ? "READY_TO_IMPORT" : "ERRORS";
       ctx.json(new BatchStatus(status, metadataValidation, filesValidation, vcfsValidation));
     } catch (NoSuchKeyException e) {
@@ -150,7 +153,7 @@ public class BatchController {
     methods = HttpMethod.GET,
     tags = {"Batch"},
     headers = {
-      @OpenApiParam(name = "Authorization", required = true),
+      @OpenApiParam(name = "Authorization", example = "Bearer aaa.bbb.ccc" , required = true),
     },
     pathParams = {
       @OpenApiParam(name = "batch_id", required = true),
@@ -180,7 +183,7 @@ public class BatchController {
     methods = HttpMethod.GET,
     tags = {"Batch"},
     headers = {
-      @OpenApiParam(name = "Authorization", required = true),
+      @OpenApiParam(name = "Authorization", example = "Bearer aaa.bbb.ccc" , required = true),
     },
     pathParams = {
       @OpenApiParam(name = "batch_id", required = true),

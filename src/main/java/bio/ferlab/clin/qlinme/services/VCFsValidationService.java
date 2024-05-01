@@ -3,27 +3,32 @@ package bio.ferlab.clin.qlinme.services;
 import bio.ferlab.clin.qlinme.cients.S3Client;
 import bio.ferlab.clin.qlinme.model.Metadata;
 import bio.ferlab.clin.qlinme.model.VCFsValidation;
+import io.javalin.http.HttpStatus;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 
+import java.time.Instant;
 import java.util.*;
 import java.util.zip.GZIPInputStream;
 
+@Slf4j
 @RequiredArgsConstructor
 public class VCFsValidationService {
 
   private final String bucket;
   private final S3Client s3Client;
 
-  public VCFsValidation validate(Metadata m, String batchId, List<String> files){
+  public VCFsValidation validate(Metadata m, String batchId, List<String> files, boolean allowCache){
     var validation = new VCFsValidation();
     var aliquotIDsInMetadata = extractAliquotIDs(m);
     var vcfFiles = files.stream().filter(f -> isVCF(m,f)).toList();
-    var aliquotIDByVCFs = extractAliquotIDs(m, batchId, vcfFiles);
+    var aliquotIDByVCFs = extractAliquotIDs(m, batchId, vcfFiles, allowCache);
 
     validation.setCount(vcfFiles.size());
 
@@ -58,12 +63,12 @@ public class VCFsValidationService {
     return aliquotIDs;
   }
 
-  private Map<String, List<String>> extractAliquotIDs(Metadata m, String batchId, List<String> files) {
+  private Map<String, List<String>> extractAliquotIDs(Metadata m, String batchId, List<String> files, boolean allowCache) {
     var aliquotIDByVCFs = new TreeMap<String, List<String>>();
     if (files != null) {
       var vcfs = files.stream().filter(f -> isVCF(m,f)).toList();
       for(var vcf: vcfs) {
-        extractAliquotIDs(batchId+"/"+vcf).forEach(aliquot -> {
+        extractAliquotIDs(batchId+"/"+vcf, allowCache).forEach(aliquot -> {
           aliquotIDByVCFs.computeIfAbsent(aliquot, id -> new ArrayList<>());
           aliquotIDByVCFs.get(aliquot).add(vcf);
         });
@@ -72,25 +77,48 @@ public class VCFsValidationService {
     return  aliquotIDByVCFs;
   }
 
-  private List<String> extractAliquotIDs(String key) {
+  private List<String> extractAliquotIDs(String key, boolean allowCache) {
     ResponseInputStream<GetObjectResponse> vcfInputStream = null;
     Scanner vcfReader = null;
     var aliquotIDs = new ArrayList<String>();
     try {
       vcfInputStream = s3Client.getS3Client().getObject(GetObjectRequest.builder().bucket(bucket).key(key).build());
-      vcfReader = new Scanner(new GZIPInputStream(vcfInputStream));
-      while(vcfReader.hasNext() && aliquotIDs.isEmpty()) {
-        var line = vcfReader.nextLine();
-        if (line.startsWith("#CHROM")) {
-          aliquotIDs.addAll(Arrays.stream(line.replace("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t", "").split("\t")).toList());
+      var cached = extractAliquotIDsFromCache(key, vcfInputStream.response().lastModified(), allowCache);
+      if (cached.isPresent()) {
+        aliquotIDs.addAll(cached.get());
+      } else {
+        vcfReader = new Scanner(new GZIPInputStream(vcfInputStream));
+        while(vcfReader.hasNext() && aliquotIDs.isEmpty()) {
+          var line = vcfReader.nextLine();
+          if (line.startsWith("#CHROM")) {
+            aliquotIDs.addAll(Arrays.stream(line.replace("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t", "").split("\t")).toList());
+          }
         }
       }
+      if (aliquotIDs.isEmpty()) {
+        throw new RuntimeException("No aliquots IDs found in: "+ key);
+      }
+      s3Client.setCachedVCFAliquotIDs(bucket, key, vcfInputStream.response().lastModified(), aliquotIDs);
     } catch (Exception e) {
       throw new RuntimeException(e);
     } finally {
       IOUtils.closeQuietly(vcfReader, vcfInputStream);
     }
     return aliquotIDs;
+  }
+
+
+  private Optional<List<String>> extractAliquotIDsFromCache(String key, Instant lastModified, boolean allowCache) {
+    try {
+      if (!allowCache) return Optional.empty();
+      var data = s3Client.getCachedVCFAliquotIDs(bucket, key, lastModified);
+      log.info("VCF aliquot IDs from cache: {} {}", key, lastModified);
+      return Optional.of(Arrays.stream(new String(data).split(",")).toList());
+    } catch (NoSuchKeyException e) {
+      return Optional.empty();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public static boolean isVCF(Metadata m, String file) {

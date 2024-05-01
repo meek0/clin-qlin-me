@@ -1,6 +1,5 @@
 package bio.ferlab.clin.qlinme;
 
-import bio.ferlab.clin.qlinme.cients.FhirClient;
 import bio.ferlab.clin.qlinme.cients.KeycloakClient;
 import bio.ferlab.clin.qlinme.cients.S3Client;
 import bio.ferlab.clin.qlinme.controllers.AuthController;
@@ -9,17 +8,14 @@ import bio.ferlab.clin.qlinme.handlers.ExceptionHandler;
 import bio.ferlab.clin.qlinme.handlers.HealthCheckHandler;
 import bio.ferlab.clin.qlinme.handlers.SecurityHandler;
 import bio.ferlab.clin.qlinme.handlers.Slf4jRequestLogger;
-import bio.ferlab.clin.qlinme.model.FilesValidation;
-import bio.ferlab.clin.qlinme.model.VCFsValidation;
 import bio.ferlab.clin.qlinme.services.FilesValidationService;
 import bio.ferlab.clin.qlinme.services.MetadataValidationService;
 import bio.ferlab.clin.qlinme.services.VCFsValidationService;
+import bio.ferlab.clin.qlinme.utils.Utils;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.Javalin;
 import io.javalin.http.HttpResponseException;
-import io.javalin.http.HttpStatus;
 import io.javalin.json.JavalinJackson;
 import io.javalin.security.RouteRole;
 import io.javalin.validation.ValidationException;

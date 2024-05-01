@@ -1,7 +1,6 @@
 package bio.ferlab.clin.qlinme.handlers;
 
-import bio.ferlab.clin.qlinme.App;
-import bio.ferlab.clin.qlinme.Utils;
+import bio.ferlab.clin.qlinme.utils.Utils;
 import io.javalin.http.Context;
 import io.javalin.http.RequestLogger;
 import lombok.extern.slf4j.Slf4j;

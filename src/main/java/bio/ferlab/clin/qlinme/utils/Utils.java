@@ -1,5 +1,6 @@
-package bio.ferlab.clin.qlinme;
+package bio.ferlab.clin.qlinme.utils;
 
+import bio.ferlab.clin.qlinme.App;
 import io.javalin.http.Context;
 import io.javalin.validation.NullableValidator;
 import org.apache.commons.lang3.StringUtils;

@@ -2,8 +2,6 @@ package bio.ferlab.clin.qlinme.services;
 
 import bio.ferlab.clin.qlinme.model.FilesValidation;
 import bio.ferlab.clin.qlinme.model.Metadata;
-import bio.ferlab.clin.qlinme.model.MetadataValidation;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;

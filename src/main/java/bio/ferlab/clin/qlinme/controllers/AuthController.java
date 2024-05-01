@@ -1,9 +1,9 @@
 package bio.ferlab.clin.qlinme.controllers;
 
 import bio.ferlab.clin.qlinme.Routes;
-import bio.ferlab.clin.qlinme.Utils;
 import bio.ferlab.clin.qlinme.cients.KeycloakClient;
 import bio.ferlab.clin.qlinme.model.UserToken;
+import bio.ferlab.clin.qlinme.utils.Utils;
 import com.auth0.jwt.JWT;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;

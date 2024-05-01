@@ -16,7 +16,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
 
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.interfaces.RSAPublicKey;
 

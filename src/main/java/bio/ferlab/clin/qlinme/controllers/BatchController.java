@@ -1,13 +1,15 @@
 package bio.ferlab.clin.qlinme.controllers;
 
 import bio.ferlab.clin.qlinme.Routes;
-import bio.ferlab.clin.qlinme.Utils;
 import bio.ferlab.clin.qlinme.cients.S3Client;
-import bio.ferlab.clin.qlinme.model.*;
+import bio.ferlab.clin.qlinme.model.BatchStatus;
+import bio.ferlab.clin.qlinme.model.Metadata;
+import bio.ferlab.clin.qlinme.model.MetadataHistory;
+import bio.ferlab.clin.qlinme.model.MetadataValidation;
 import bio.ferlab.clin.qlinme.services.FilesValidationService;
 import bio.ferlab.clin.qlinme.services.MetadataValidationService;
 import bio.ferlab.clin.qlinme.services.VCFsValidationService;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import bio.ferlab.clin.qlinme.utils.Utils;
 import io.javalin.http.ContentType;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -15,11 +17,8 @@ import io.javalin.json.JavalinJackson;
 import io.javalin.openapi.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
-
-import java.util.List;
 
 @Slf4j
 @RequiredArgsConstructor

@@ -3,7 +3,6 @@ package bio.ferlab.clin.qlinme.services;
 import bio.ferlab.clin.qlinme.cients.S3Client;
 import bio.ferlab.clin.qlinme.model.Metadata;
 import bio.ferlab.clin.qlinme.model.VCFsValidation;
-import io.javalin.http.HttpStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
@@ -11,6 +10,7 @@ import org.apache.commons.lang3.StringUtils;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 
 import java.time.Instant;
@@ -81,12 +81,15 @@ public class VCFsValidationService {
     ResponseInputStream<GetObjectResponse> vcfInputStream = null;
     Scanner vcfReader = null;
     var aliquotIDs = new ArrayList<String>();
+    Instant lastModified = null;
     try {
-      vcfInputStream = s3Client.getS3Client().getObject(GetObjectRequest.builder().bucket(bucket).key(key).build());
-      var cached = extractAliquotIDsFromCache(key, vcfInputStream.response().lastModified(), allowCache);
+      lastModified = s3Client.getS3Client().headObject(HeadObjectRequest.builder().bucket(bucket).key(key).build()).lastModified();
+      var cached = extractAliquotIDsFromCache(key, lastModified, allowCache);
       if (cached.isPresent()) {
         aliquotIDs.addAll(cached.get());
       } else {
+        vcfInputStream = s3Client.getS3Client().getObject(GetObjectRequest.builder().bucket(bucket).key(key).build());
+        lastModified = vcfInputStream.response().lastModified();
         vcfReader = new Scanner(new GZIPInputStream(vcfInputStream));
         while(vcfReader.hasNext() && aliquotIDs.isEmpty()) {
           var line = vcfReader.nextLine();
@@ -98,7 +101,7 @@ public class VCFsValidationService {
       if (aliquotIDs.isEmpty()) {
         throw new RuntimeException("No aliquots IDs found in: "+ key);
       }
-      s3Client.setCachedVCFAliquotIDs(bucket, key, vcfInputStream.response().lastModified(), aliquotIDs);
+      s3Client.setCachedVCFAliquotIDs(bucket, key, lastModified, aliquotIDs);
     } catch (Exception e) {
       throw new RuntimeException(e);
     } finally {

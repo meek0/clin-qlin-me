@@ -1,6 +1,5 @@
 package bio.ferlab.clin.qlinme.cients;
 
-import bio.ferlab.clin.qlinme.App;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.http.HttpResponseException;

@@ -183,7 +183,7 @@ public class MetadataValidationService {
   }
 
   private void updateFamilies(Metadata.Patient patient, Map<String, Family> families) {
-    if(!DesignFamily.SOLO.name().equals(patient.designFamily())) {
+    if(StringUtils.isNotBlank(patient.familyId()) && !DesignFamily.SOLO.name().equals(patient.designFamily())) {
       if (!families.containsKey(patient.familyId())) {
         families.put(patient.familyId(), new Family(patient.designFamily(), new ArrayList<>()));
       }

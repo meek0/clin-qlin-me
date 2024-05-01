@@ -2,9 +2,11 @@ package bio.ferlab.clin.qlinme.cients;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.regions.Region;
@@ -98,20 +100,25 @@ public class S3Client {
 
   public byte[] getMetadata(String bucket, String batchId) throws IOException {
     var backupKey = batchId+"/metadata.json";
-    var request = GetObjectRequest.builder().bucket(bucket).key(backupKey).build();
-    return s3Client.getObject(request).readAllBytes();
+    return readAndClose(bucket, backupKey);
   }
 
   public byte[] getBackupMetadata(String bucket, String batchId, String version) throws IOException {
     var backupKey = BACKUP_FOLDER+"/"+batchId+"/metadata.json."+version;
-    var request = GetObjectRequest.builder().bucket(bucket).key(backupKey).build();
-    return s3Client.getObject(request).readAllBytes();
+    return readAndClose(bucket, backupKey);
   }
 
   public byte[] getCachedVCFAliquotIDs(String bucket, String key, Instant lastModified) throws IOException {
-    var backupKey = formatCachedVCFAliquotIDsKey(key, lastModified.toString());
-    var request = GetObjectRequest.builder().bucket(bucket).key(backupKey).build();
-    return s3Client.getObject(request).readAllBytes();
+    var cachedKey = formatCachedVCFAliquotIDsKey(key, lastModified.toString());
+    return readAndClose(bucket, cachedKey);
+  }
+
+  private byte[] readAndClose(String bucket, String key) throws IOException {
+    var request = GetObjectRequest.builder().bucket(bucket).key(key).build();
+    var response = s3Client.getObject(request);
+    var data = response.readAllBytes();
+    response.close();
+    return data;
   }
 
   public void setCachedVCFAliquotIDs(String bucket, String key, Instant lastModified, List<String> ids) throws IOException {

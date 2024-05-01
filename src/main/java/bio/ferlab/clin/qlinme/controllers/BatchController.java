@@ -17,8 +17,11 @@ import io.javalin.json.JavalinJackson;
 import io.javalin.openapi.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+
+import java.util.List;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -42,12 +45,12 @@ public class BatchController {
       @OpenApiParam(name = "Authorization", example = "Bearer aaa.bbb.ccc", required = true),
     },
     pathParams = {
-      @OpenApiParam(name = "batch_id", required = true),
+      @OpenApiParam(name = "batch_id", required = true, description = "Should match the batch folder name in S3"),
     },
     responses = {
       @OpenApiResponse(status = "200", content = @OpenApiContent(from = Metadata.class)),
-      @OpenApiResponse(status = "403"),
-      @OpenApiResponse(status = "404"),
+      @OpenApiResponse(status = "403", description = "Bearer token is missing or invalid"),
+      @OpenApiResponse(status = "404", description = "Batch doesn't exist"),
     }
   )
   public void batchRead(Context ctx) {
@@ -72,33 +75,42 @@ public class BatchController {
       @OpenApiParam(name = "Authorization", example = "Bearer aaa.bbb.ccc", required = true),
     },
     pathParams = {
-      @OpenApiParam(name = "batch_id", required = true),
+      @OpenApiParam(name = "batch_id", required = true, description = "Should match the batch folder name in S3"),
+    },
+    queryParams = {
+      @OpenApiParam(name = "validate-only", type = Boolean.class, allowEmptyValue = true, description = "Optional, validate only and ignore saving the metadata", example = "<empty>|true"),
     },
     requestBody = @OpenApiRequestBody(
-      description = "Metadata",
+      description = "Metadata JSON",
       content = @OpenApiContent(from = Metadata.class)
     ),
     responses = {
-      @OpenApiResponse(status = "200", content = @OpenApiContent(from = Metadata.class)),
-      @OpenApiResponse(status = "400", content = @OpenApiContent(from = MetadataValidation.class)),
-      @OpenApiResponse(status = "403"),
+      @OpenApiResponse(status = "200", content = @OpenApiContent(from = Metadata.class), description = "Metadata is valid but not saved"),
+      @OpenApiResponse(status = "201", content = @OpenApiContent(from = Metadata.class), description = "Metadata is valid and saved"),
+      @OpenApiResponse(status = "400", content = @OpenApiContent(from = MetadataValidation.class), description = "Metadata is invalid and contains errors to be fixed"),
+      @OpenApiResponse(status = "403", description = "Bearer token is missing or invalid"),
     }
   )
   public void batchCreateUpdate(Context ctx) {
     var batchId = Utils.getValidParamParam(ctx, "batch_id").get();
+    var validate = List.of("", "true").contains(String.valueOf(ctx.queryParam("validate-only"))); // "null" wont work
     var metadata = ctx.bodyAsClass(Metadata.class);
-    validateAndCreateMetadata(ctx, metadata, batchId);
+    validateAndCreateMetadata(ctx, metadata, batchId, !validate);
   }
 
-  private void validateAndCreateMetadata(Context ctx, Metadata metadata, String batchId) {
+  private void validateAndCreateMetadata(Context ctx, Metadata metadata, String batchId, boolean save) {
     var validation = metadataValidationService.validateMetadata(metadata, batchId);
     if (!validation.isValid()) {
       ctx.status(HttpStatus.BAD_REQUEST).json(validation);
     }else {
       try {
-        var validatedMetadata = objectMapper.getMapper().writerWithDefaultPrettyPrinter().writeValueAsString(metadata);
-        s3Client.backupAndSaveMetadata(metadataBucket, batchId, validatedMetadata);
-        ctx.json(metadata);
+        if (save) {
+          var validatedMetadataStr = objectMapper.getMapper().writerWithDefaultPrettyPrinter().writeValueAsString(metadata);
+          s3Client.backupAndSaveMetadata(metadataBucket, batchId, validatedMetadataStr);
+          ctx.status(HttpStatus.CREATED).json(metadata);
+        } else {
+          ctx.json(metadata);
+        }
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
@@ -117,12 +129,12 @@ public class BatchController {
       @OpenApiParam(name = HttpHeaders.CACHE_CONTROL , description = "Ignore and refresh previous cached validations", example = "no-cache")
     },
     pathParams = {
-      @OpenApiParam(name = "batch_id", required = true),
+      @OpenApiParam(name = "batch_id", required = true, description = "Should match the batch folder name in S3"),
     },
     responses = {
       @OpenApiResponse(status = "200", content = @OpenApiContent(from = BatchStatus.class)),
-      @OpenApiResponse(status = "403"),
-      @OpenApiResponse(status = "404"),
+      @OpenApiResponse(status = "403", description = "Bearer token is missing or invalid"),
+      @OpenApiResponse(status = "404", description = "Batch doesn't exist"),
     }
   )
   public void batchStatus(Context ctx) {
@@ -155,12 +167,12 @@ public class BatchController {
       @OpenApiParam(name = "Authorization", example = "Bearer aaa.bbb.ccc" , required = true),
     },
     pathParams = {
-      @OpenApiParam(name = "batch_id", required = true),
+      @OpenApiParam(name = "batch_id", required = true, description = "Should match the batch folder name in S3"),
     },
     responses = {
       @OpenApiResponse(status = "200", content = @OpenApiContent(from = MetadataHistory.class)),
-      @OpenApiResponse(status = "403"),
-      @OpenApiResponse(status = "404"),
+      @OpenApiResponse(status = "403", description = "Bearer token is missing or invalid"),
+      @OpenApiResponse(status = "404", description = "Batch doesn't exist"),
     }
   )
   public void batchHistory(Context ctx) {
@@ -185,12 +197,12 @@ public class BatchController {
       @OpenApiParam(name = "Authorization", example = "Bearer aaa.bbb.ccc" , required = true),
     },
     pathParams = {
-      @OpenApiParam(name = "batch_id", required = true),
+      @OpenApiParam(name = "batch_id", required = true, description = "Should match the batch folder name in S3"),
     },
     responses = {
       @OpenApiResponse(status = "200", content = @OpenApiContent(from = Metadata.class)),
-      @OpenApiResponse(status = "403"),
-      @OpenApiResponse(status = "404"),
+      @OpenApiResponse(status = "403", description = "Bearer token is missing or invalid"),
+      @OpenApiResponse(status = "404", description = "Batch doesn't exist"),
     }
   )
   public void batchHistoryByVersion(Context ctx) {

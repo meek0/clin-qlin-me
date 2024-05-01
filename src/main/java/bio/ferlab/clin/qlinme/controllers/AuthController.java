@@ -31,8 +31,8 @@ public class AuthController {
     },
     responses = {
       @OpenApiResponse(status = "200", content = @OpenApiContent(from = UserToken.class)),
-      @OpenApiResponse(status = "400"),
-      @OpenApiResponse(status = "401"),
+      @OpenApiResponse(status = "400", description = "Email and/or password are missing from query param"),
+      @OpenApiResponse(status = "401", description = "The credentials arent valid, please check the email/password"),
     }
   )
   public void login(Context ctx) throws IOException {

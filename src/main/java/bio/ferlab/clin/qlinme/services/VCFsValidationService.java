@@ -98,11 +98,11 @@ public class VCFsValidationService {
             vcfInputStream.abort(); // ignore the remaining response
           }
         }
+        s3Client.setCachedVCFAliquotIDs(bucket, key, lastModified, aliquotIDs);
       }
       if (aliquotIDs.isEmpty()) {
         throw new RuntimeException("No aliquots IDs found in: "+ key);
       }
-      s3Client.setCachedVCFAliquotIDs(bucket, key, lastModified, aliquotIDs);
     } catch (Exception e) {
       throw new RuntimeException(e);
     } finally {

@@ -95,6 +95,7 @@ public class VCFsValidationService {
           var line = vcfReader.nextLine();
           if (line.startsWith("#CHROM")) {
             aliquotIDs.addAll(Arrays.stream(line.replace("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t", "").split("\t")).toList());
+            vcfInputStream.abort(); // ignore the remaining response
           }
         }
       }

@@ -43,14 +43,9 @@ public class MetadataValidationService {
     NBL, TUMOR
   }
 
-  enum DesignFamily {
-    SOLO, DUO, TRIO,
-  }
-
   private final List<String> schemaValues =  Arrays.stream(SchemaValues.values()).map(Enum::name).toList();
   private final List<String> sampleTypeValues = List.of("DNA");
   private final List<String> specimenTypeValues = Arrays.stream(SpecimenType.values()).map(Enum::name).toList();
-  private final List<String> designFamilyValues = Arrays.stream(DesignFamily.values()).map(Enum::name).toList();
   private final List<String> familyMemberValues = List.of("PROBAND", "MTH", "FTH", "SIS", "BRO");
   private final List<String> fetusValues = List.of("false", "null");
   private final List<String> sexValues = List.of("female", "male", "unknown");
@@ -58,7 +53,7 @@ public class MetadataValidationService {
   private final List<String> versionValues = List.of("3.8.4","3.10.4", "4.2.4");
   private final List<String> fileKeys =  Arrays.stream(Files.values()).map(Enum::name).toList();
 
-  record Family(String designFamily, List<String> members){}
+  record Family(List<String> members){}
 
   public MetadataValidation validateMetadata(Metadata m, String batchId, List<String> panelCodeValues, List<String> organizations) {
     var validation = new MetadataValidation();
@@ -96,7 +91,6 @@ public class MetadataValidationService {
             validateSpecialCharacters(errorPrefix+ ".patient.firstName", patient.firstName(), validation);
             validateField(errorPrefix + ".patient.lastName", patient.lastName(), validation, null);
             validateSpecialCharacters(errorPrefix+ ".patient.lastName", patient.lastName(), validation);
-            validateField(errorPrefix + ".patient.designFamily", patient.designFamily(), validation, designFamilyValues);
             validateField(errorPrefix + ".patient.ep", patient.ep(), validation, epValues);
             validateField(errorPrefix + ".patient.familyMember", familyMember, validation, familyMemberValues);
             validateField(errorPrefix + ".patient.fetus", String.valueOf(patient.fetus()), validation, fetusValues);
@@ -105,7 +99,6 @@ public class MetadataValidationService {
             validateDate(errorPrefix+ ".patient.birthDate", patient.birthDate(), validation, DateUtils.DDMMYYYY);
             validateField(errorPrefix + ".patient.status", patient.status(), validation, statusValues);
             validatePatient(errorPrefix + ".patient", patient, validation);
-            validateFamilyId(errorPrefix + ".patient", patient, validation);
             checkUnicity("mrn", errorPrefix + ".patient.mrn", patient.mrn(), valuesByField, validation);
             validateSpecialCharacters(errorPrefix+ ".patient.mrn", patient.mrn(), validation);
             checkUnicity("ramq", errorPrefix + ".patient.ramq", patient.ramq(), valuesByField, validation);
@@ -172,7 +165,7 @@ public class MetadataValidationService {
     for(var familyId: families.keySet()) {
       var family = families.get(familyId);
       if (family.members.size() == 1 ) {
-        validation.addError("Family."+familyId, "should be SOLO or have more than one familyMember: "+family.members);
+        validation.addError("Family."+familyId, "should be without familyId or have more than one familyMember: "+family.members);
       }
       var membersCount = Utils.countBy(family.members);
       for (var member: membersCount.keySet()) {
@@ -187,9 +180,9 @@ public class MetadataValidationService {
   }
 
   private void updateFamilies(Metadata.Patient patient, Map<String, Family> families) {
-    if(StringUtils.isNotBlank(patient.familyId()) && !DesignFamily.SOLO.name().equals(patient.designFamily())) {
+    if(StringUtils.isNotBlank(patient.familyId())) {
       if (!families.containsKey(patient.familyId())) {
-        families.put(patient.familyId(), new Family(patient.designFamily(), new ArrayList<>()));
+        families.put(patient.familyId(), new Family(new ArrayList<>()));
       }
       families.get(patient.familyId()).members().add(patient.familyMember());
     }
@@ -251,12 +244,6 @@ public class MetadataValidationService {
   private void validatePatient(String field, Metadata.Patient patient, MetadataValidation validation) {
     if (StringUtils.isAllBlank(patient.mrn(), patient.ramq())) {
       validation.addError(field, "should have mrn or ramq or both");
-    }
-  }
-
-  private void validateFamilyId(String field, Metadata.Patient patient, MetadataValidation validation) {
-    if (DesignFamily.SOLO.name().equals(patient.designFamily()) && StringUtils.isNotBlank(patient.familyId())) {
-      validation.addError(field, "designFamily SOLO should not have familyId");
     }
   }
 

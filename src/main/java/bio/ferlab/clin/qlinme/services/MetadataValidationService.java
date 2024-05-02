@@ -236,7 +236,7 @@ public class MetadataValidationService {
   private void validateSpecialCharacters(String field, String value, MetadataValidation validation) {
     if(StringUtils.isNotBlank(value)) {
       if(StringUtils.length(value) < 2 || !NameUtils.hasNoSpecialCharacters(value)){
-        validation.addError(field, "should have length > 2 and no special characters, cf. regex: "+NameUtils.NO_SPECIAL_CHARACTERS);
+        validation.addError(field, "should have length >= 2 and no special characters, cf. regex: "+NameUtils.NO_SPECIAL_CHARACTERS);
       }
     }
   }

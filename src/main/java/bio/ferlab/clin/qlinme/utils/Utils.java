@@ -5,6 +5,10 @@ import io.javalin.http.Context;
 import io.javalin.validation.NullableValidator;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 public class Utils {
 
   public static NullableValidator<String> getValidQueryParam(Context ctx, String name) {
@@ -17,5 +21,11 @@ public class Utils {
 
   public static boolean isPublicRoute(Context ctx) {
     return App.config.publics.stream().anyMatch(p -> ctx.req().getRequestURI().startsWith(p));
+  }
+
+  public static <T> Map<T, Integer> countBy(List<T> inputList) {
+    Map<T, Integer> resultMap = new HashMap<>();
+    inputList.forEach(e -> resultMap.merge(e, 1, Integer::sum));
+    return resultMap;
   }
 }

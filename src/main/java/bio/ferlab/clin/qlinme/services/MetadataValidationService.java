@@ -4,10 +4,12 @@ import bio.ferlab.clin.qlinme.model.Metadata;
 import bio.ferlab.clin.qlinme.model.MetadataValidation;
 import bio.ferlab.clin.qlinme.utils.DateUtils;
 import bio.ferlab.clin.qlinme.utils.NameUtils;
+import bio.ferlab.clin.qlinme.utils.Utils;
 import org.apache.commons.lang3.StringUtils;
 import software.amazon.awssdk.services.s3.endpoints.internal.Value;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class MetadataValidationService {
 
@@ -173,8 +175,11 @@ public class MetadataValidationService {
       if (family.members.size() == 1 ) {
         validation.addError("Family."+familyId, "should be SOLO or have more than one familyMember: "+family.members);
       }
-      if (new TreeSet(family.members).size() != family.members.size()) {
-        validation.addError("Family."+familyId, "should have distinct familyMembers: "+family.members);
+      var membersCount = Utils.countBy(family.members);
+      for (var member: membersCount.keySet()) {
+        if (!List.of("BRO", "SIS").contains(member) && membersCount.get(member) > 1) {
+          validation.addError("Family."+familyId, "should have distinct familyMembers: "+family.members);
+        }
       }
       if (!family.members.contains("PROBAND")) {
         validation.addError("Family."+familyId, "should have at least one PROBAND: "+family.members);

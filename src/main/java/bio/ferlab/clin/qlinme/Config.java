@@ -20,7 +20,7 @@ public class Config {
   public final String awsEndpoint = getEnv("AWS_ENDPOINT").orElse("http://localhost:9000");
   public final String awsBucket = getEnv("AWS_BUCKET").orElse("clin-qa-app-files-import");
 
-  public final String fhirUrl = getEnv("FHIR_URL").orElse(" https://fhir.qa.cqgc.hsj.rtss.qc.ca/fhir");
+  public final String fhirUrl = getEnv("FHIR_URL").orElse("https://fhir.qa.cqgc.hsj.rtss.qc.ca/fhir");
 
   public final boolean securityEnabled = getEnv("SECURITY_ENABLED").map(Boolean::parseBoolean).orElse(true);
 

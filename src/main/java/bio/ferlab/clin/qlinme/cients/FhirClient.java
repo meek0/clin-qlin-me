@@ -1,14 +1,26 @@
 package bio.ferlab.clin.qlinme.cients;
 
+import bio.ferlab.clin.qlinme.utils.TimedCache;
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.context.PerformanceOptionsEnum;
+import ca.uhn.fhir.rest.api.CacheControlDirective;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.client.api.ServerValidationModeEnum;
+import io.javalin.http.Context;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.http.HttpHeaders;
+import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.CodeSystem;
+import org.hl7.fhir.r4.model.Organization;
 
+import java.util.List;
+
+@Slf4j
 public class FhirClient {
 
   private final FhirContext context;
   private final IGenericClient genericClient;
+  private final TimedCache<String, List<String>> cache = new TimedCache<>(10000L/*300000L*/);
 
   public FhirClient(String url, int timeoutMs, int poolSize) {
     context = FhirContext.forR4();
@@ -23,5 +35,31 @@ public class FhirClient {
     context.getRestfulClientFactory().setPoolMaxPerRoute(poolSize);
 
     this.genericClient = context.newRestfulGenericClient(url);
+  }
+
+  public synchronized List<String> getPanelCodes(String rpt) {
+    return cache.get("panels").orElseGet(() -> {
+      var response = this.genericClient.read().resource(CodeSystem.class).withId("analysis-request-code").withAdditionalHeader(HttpHeaders.AUTHORIZATION, rpt).execute();
+      var values = response.getConcept().stream().map(CodeSystem.ConceptDefinitionComponent::getCode).toList();
+      log.info("Fetched panels: {}", values);
+      return cache.put("panels", values);
+    });
+  }
+
+  private synchronized List<String> getOrganizations(String rpt) {
+    return cache.get("organizations").orElseGet(() -> {
+      var response = this.genericClient.search().forResource(Organization.class).count(100).returnBundle(Bundle.class).withAdditionalHeader(HttpHeaders.AUTHORIZATION, rpt).execute();
+      var values = response.getEntry().stream().map(e -> (Organization)e.getResource()).map(o -> o.getIdElement().getIdPart()).toList();
+      log.info("Fetched Organizations: {}", values);
+      return cache.put("organizations", values);
+    });
+  }
+
+  public synchronized List<String> getListOfEPs(String rpt) {
+    return getOrganizations(rpt).stream().filter(o -> !o.startsWith("LDM")).toList();
+  }
+
+  public synchronized List<String> getListOfLDMs(String rpt) {
+    return getOrganizations(rpt).stream().filter(o -> o.startsWith("LDM")).toList();
   }
 }

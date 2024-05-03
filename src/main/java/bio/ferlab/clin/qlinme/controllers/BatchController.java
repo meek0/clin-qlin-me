@@ -1,6 +1,7 @@
 package bio.ferlab.clin.qlinme.controllers;
 
 import bio.ferlab.clin.qlinme.Routes;
+import bio.ferlab.clin.qlinme.cients.FhirClient;
 import bio.ferlab.clin.qlinme.cients.S3Client;
 import bio.ferlab.clin.qlinme.model.BatchStatus;
 import bio.ferlab.clin.qlinme.model.Metadata;
@@ -33,6 +34,7 @@ public class BatchController {
   private final FilesValidationService filesValidationService;
   private final VCFsValidationService vcFsValidationService;
   private final JavalinJackson objectMapper;
+  private final FhirClient fhirClient;
 
   @OpenApi(
     summary = "Get current metadata",
@@ -98,8 +100,16 @@ public class BatchController {
     validateAndCreateMetadata(ctx, metadata, batchId, !validate);
   }
 
+  private MetadataValidation validate(Context ctx, Metadata metadata, String batchId) {
+    var rpt = ctx.header(HttpHeaders.AUTHORIZATION);
+    return metadataValidationService.validateMetadata(metadata, batchId,
+      fhirClient.getPanelCodes(rpt),
+      fhirClient.getListOfEPs(rpt),
+      fhirClient.getListOfLDMs(rpt));
+  }
+
   private void validateAndCreateMetadata(Context ctx, Metadata metadata, String batchId, boolean save) {
-    var validation = metadataValidationService.validateMetadata(metadata, batchId);
+    var validation = validate(ctx, metadata, batchId);
     if (!validation.isValid()) {
       ctx.status(HttpStatus.BAD_REQUEST).json(validation);
     }else {
@@ -140,9 +150,10 @@ public class BatchController {
   public void batchStatus(Context ctx) {
     var batchId = Utils.getValidParamParam(ctx, "batch_id").get();
     var allowCache = !"no-cache".equals(ctx.header(HttpHeaders.CACHE_CONTROL));
+    var rpt = ctx.header(HttpHeaders.AUTHORIZATION);
     try {
       var metadata = objectMapper.getMapper().readValue(s3Client.getMetadata(metadataBucket, batchId), Metadata.class);
-      var metadataValidation = metadataValidationService.validateMetadata(metadata, batchId);
+      var metadataValidation = validate(ctx, metadata, batchId);
       var s3Files = s3Client.listBatchFiles(metadataBucket, batchId);
       var filesValidation = filesValidationService.validateFiles(metadata, s3Files);
       var vcfsValidation = vcFsValidationService.validate(metadata, batchId, s3Files, allowCache);

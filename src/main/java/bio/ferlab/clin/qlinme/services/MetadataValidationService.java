@@ -48,12 +48,9 @@ public class MetadataValidationService {
   }
 
   private final List<String> schemaValues =  Arrays.stream(SchemaValues.values()).map(Enum::name).toList();
-  private final List<String> ldmValues = List.of("LDM-CHUSJ", "LDM-CHUS", "LDM-CUSM");
-  private final List<String> panelCodeValues = List.of("MMG", "DYSM", "RHAB", "MITN", "MYOC", "MYAC", "HYPM", "RGDI", "POLYM", "TRATU", "EXTUM", "EXNOR", "TUPED", "TUHEM");
   private final List<String> sampleTypeValues = List.of("DNA");
   private final List<String> specimenTypeValues = Arrays.stream(SpecimenType.values()).map(Enum::name).toList();
   private final List<String> designFamilyValues = Arrays.stream(DesignFamily.values()).map(Enum::name).toList();
-  private final List<String> epValues = List.of("CHUSJ", "CHUS", "CUSM");
   private final List<String> familyMemberValues = List.of("PROBAND", "MTH", "FTH", "SIS", "BRO");
   private final List<String> fetusValues = List.of("false", "null");
   private final List<String> sexValues = List.of("female", "male", "unknown");
@@ -63,7 +60,7 @@ public class MetadataValidationService {
 
   record Family(String designFamily, List<String> members){}
 
-  public MetadataValidation validateMetadata(Metadata m, String batchId) {
+  public MetadataValidation validateMetadata(Metadata m, String batchId, List<String> panelCodeValues, List<String> epValues, List<String> ldmValues) {
     var validation = new MetadataValidation();
     Map<String, List<String>> valuesByField = new TreeMap<>();
     Map<String, Family>families = new TreeMap<>();

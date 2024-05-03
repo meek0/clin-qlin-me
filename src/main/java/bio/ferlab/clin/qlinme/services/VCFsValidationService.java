@@ -98,6 +98,7 @@ public class VCFsValidationService {
             vcfInputStream.abort(); // ignore the remaining response
           }
         }
+        log.info("Cache VCF aliquot IDs: {} {}", key, lastModified);
         s3Client.setCachedVCFAliquotIDs(bucket, key, lastModified, aliquotIDs);
       }
       if (aliquotIDs.isEmpty()) {
@@ -116,7 +117,6 @@ public class VCFsValidationService {
     try {
       if (!allowCache) return Optional.empty();
       var data = s3Client.getCachedVCFAliquotIDs(bucket, key, lastModified);
-      log.info("VCF aliquot IDs from cache: {} {}", key, lastModified);
       return Optional.of(Arrays.stream(new String(data).split(",")).toList());
     } catch (NoSuchKeyException e) {
       return Optional.empty();

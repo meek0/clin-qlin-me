@@ -20,7 +20,7 @@ public class FhirClient {
 
   private final FhirContext context;
   private final IGenericClient genericClient;
-  private final TimedCache<String, List<String>> cache = new TimedCache<>(10000L/*300000L*/);
+  private final TimedCache<String, List<String>> cache = new TimedCache<>(3600);
 
   public FhirClient(String url, int timeoutMs, int poolSize) {
     context = FhirContext.forR4();
@@ -37,8 +37,8 @@ public class FhirClient {
     this.genericClient = context.newRestfulGenericClient(url);
   }
 
-  public synchronized List<String> getPanelCodes(String rpt) {
-    return cache.get("panels").orElseGet(() -> {
+  public synchronized List<String> getPanelCodes(String rpt, boolean allowCache) {
+    return cache.get("panels").filter(c -> allowCache).orElseGet(() -> {
       var response = this.genericClient.read().resource(CodeSystem.class).withId("analysis-request-code").withAdditionalHeader(HttpHeaders.AUTHORIZATION, rpt).execute();
       var values = response.getConcept().stream().map(CodeSystem.ConceptDefinitionComponent::getCode).toList();
       log.info("Fetched panels: {}", values);
@@ -46,8 +46,8 @@ public class FhirClient {
     });
   }
 
-  private synchronized List<String> getOrganizations(String rpt) {
-    return cache.get("organizations").orElseGet(() -> {
+  public synchronized List<String> getOrganizations(String rpt, boolean allowCache) {
+    return cache.get("organizations").filter(c -> allowCache).orElseGet(() -> {
       var response = this.genericClient.search().forResource(Organization.class).count(100).returnBundle(Bundle.class).withAdditionalHeader(HttpHeaders.AUTHORIZATION, rpt).execute();
       var values = response.getEntry().stream().map(e -> (Organization)e.getResource()).map(o -> o.getIdElement().getIdPart()).toList();
       log.info("Fetched Organizations: {}", values);
@@ -55,11 +55,4 @@ public class FhirClient {
     });
   }
 
-  public synchronized List<String> getListOfEPs(String rpt) {
-    return getOrganizations(rpt).stream().filter(o -> !o.startsWith("LDM")).toList();
-  }
-
-  public synchronized List<String> getListOfLDMs(String rpt) {
-    return getOrganizations(rpt).stream().filter(o -> o.startsWith("LDM")).toList();
-  }
 }

@@ -60,10 +60,12 @@ public class MetadataValidationService {
 
   record Family(String designFamily, List<String> members){}
 
-  public MetadataValidation validateMetadata(Metadata m, String batchId, List<String> panelCodeValues, List<String> epValues, List<String> ldmValues) {
+  public MetadataValidation validateMetadata(Metadata m, String batchId, List<String> panelCodeValues, List<String> organizations) {
     var validation = new MetadataValidation();
     Map<String, List<String>> valuesByField = new TreeMap<>();
     Map<String, Family>families = new TreeMap<>();
+    var ldmValues = organizations.stream().filter(o -> o.startsWith("LDM")).toList();
+    var epValues = organizations.stream().filter(o -> !o.startsWith("LDM")).toList();
     if (m != null) {
       validateField("submissionSchema", m.submissionSchema(), validation, schemaValues);
       validation.setSchema(m.submissionSchema());

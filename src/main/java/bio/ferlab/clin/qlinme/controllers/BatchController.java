@@ -75,6 +75,7 @@ public class BatchController {
     tags = {"Batch"},
     headers = {
       @OpenApiParam(name = "Authorization", example = "Bearer aaa.bbb.ccc", required = true),
+      @OpenApiParam(name = HttpHeaders.CACHE_CONTROL , description = "Ignore and refresh previous cached data used for validation", example = "no-cache")
     },
     pathParams = {
       @OpenApiParam(name = "batch_id", required = true, description = "Should match the batch folder name in S3"),
@@ -95,21 +96,21 @@ public class BatchController {
   )
   public void batchCreateUpdate(Context ctx) {
     var batchId = Utils.getValidParamParam(ctx, "batch_id").get();
+    var allowCache = !"no-cache".equals(ctx.header(HttpHeaders.CACHE_CONTROL));
     var validate = List.of("", "true").contains(String.valueOf(ctx.queryParam("validate-only"))); // "null" wont work
     var metadata = ctx.bodyAsClass(Metadata.class);
-    validateAndCreateMetadata(ctx, metadata, batchId, !validate);
+    validateAndCreateMetadata(ctx, metadata, batchId, !validate, allowCache);
   }
 
-  private MetadataValidation validate(Context ctx, Metadata metadata, String batchId) {
+  private MetadataValidation validate(Context ctx, Metadata metadata, String batchId, boolean allowCache) {
     var rpt = ctx.header(HttpHeaders.AUTHORIZATION);
     return metadataValidationService.validateMetadata(metadata, batchId,
-      fhirClient.getPanelCodes(rpt),
-      fhirClient.getListOfEPs(rpt),
-      fhirClient.getListOfLDMs(rpt));
+      fhirClient.getPanelCodes(rpt, allowCache),
+      fhirClient.getOrganizations(rpt, allowCache));
   }
 
-  private void validateAndCreateMetadata(Context ctx, Metadata metadata, String batchId, boolean save) {
-    var validation = validate(ctx, metadata, batchId);
+  private void validateAndCreateMetadata(Context ctx, Metadata metadata, String batchId, boolean save, boolean allowCache) {
+    var validation = validate(ctx, metadata, batchId, allowCache);
     if (!validation.isValid()) {
       ctx.status(HttpStatus.BAD_REQUEST).json(validation);
     }else {
@@ -136,7 +137,7 @@ public class BatchController {
     tags = {"Batch"},
     headers = {
       @OpenApiParam(name = "Authorization", example = "Bearer aaa.bbb.ccc", required = true),
-      @OpenApiParam(name = HttpHeaders.CACHE_CONTROL , description = "Ignore and refresh previous cached validations", example = "no-cache")
+      @OpenApiParam(name = HttpHeaders.CACHE_CONTROL , description = "Ignore and refresh previous cached data used for validation", example = "no-cache")
     },
     pathParams = {
       @OpenApiParam(name = "batch_id", required = true, description = "Should match the batch folder name in S3"),
@@ -150,10 +151,9 @@ public class BatchController {
   public void batchStatus(Context ctx) {
     var batchId = Utils.getValidParamParam(ctx, "batch_id").get();
     var allowCache = !"no-cache".equals(ctx.header(HttpHeaders.CACHE_CONTROL));
-    var rpt = ctx.header(HttpHeaders.AUTHORIZATION);
     try {
       var metadata = objectMapper.getMapper().readValue(s3Client.getMetadata(metadataBucket, batchId), Metadata.class);
-      var metadataValidation = validate(ctx, metadata, batchId);
+      var metadataValidation = validate(ctx, metadata, batchId, allowCache);
       var s3Files = s3Client.listBatchFiles(metadataBucket, batchId);
       var filesValidation = filesValidationService.validateFiles(metadata, s3Files);
       var vcfsValidation = vcFsValidationService.validate(metadata, batchId, s3Files, allowCache);

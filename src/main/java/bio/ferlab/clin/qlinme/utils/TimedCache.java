@@ -12,16 +12,16 @@ import java.util.stream.Collectors;
 public class TimedCache<K, V> {
 
   protected Map<K, CacheValue<V>> cacheMap;
-  protected Long cacheTimeout;
+  protected int cacheTimeout;
 
-  public TimedCache(Long cacheTimeoutMs) {
-    this.cacheTimeout = cacheTimeoutMs;
+  public TimedCache(int cacheTimeoutSec) {
+    this.cacheTimeout = cacheTimeoutSec;
     this.clear();
   }
 
   private boolean isExpired(K key) {
     if (this.cacheMap.containsKey(key)) {
-      LocalDateTime expirationDateTime = this.cacheMap.get(key).getCreatedAt().plus(this.cacheTimeout, ChronoUnit.MILLIS);
+      LocalDateTime expirationDateTime = this.cacheMap.get(key).getCreatedAt().plusSeconds(this.cacheTimeout);
       return LocalDateTime.now().isAfter(expirationDateTime);
     }
     return false;

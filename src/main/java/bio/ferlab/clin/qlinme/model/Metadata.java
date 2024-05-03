@@ -10,8 +10,7 @@ public record Metadata(String submissionSchema, List<Analysis> analyses) {
   }
 
   public record Patient(String firstName, String lastName, String sex, String ramq, String birthDate, String mrn,
-                        String ep,
-                        String designFamily, String familyMember, String familyId, String status, Boolean fetus) {
+                        String ep, String familyMember, String familyId, String status, Boolean fetus) {
   }
 
   public record Experiment(String platform, String sequencerId, String runName, String runDate, String runAlias,

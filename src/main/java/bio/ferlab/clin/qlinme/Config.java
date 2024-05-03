@@ -9,6 +9,8 @@ import java.util.Optional;
 public class Config {
 
   public final long start = System.currentTimeMillis();
+
+  // public routes aren't logged
   public final List<String> publics = List.of("/actuator/health", "/favicon.ico", "/webjars", "/api/openapi.json");
   public final Integer port = getEnv("PORT").map(Integer::parseInt).orElse(7979);
   public final Env env = getEnv("ENV").map(Env::valueOf).orElse(Env.prod);

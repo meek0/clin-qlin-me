@@ -1,5 +1,6 @@
 package bio.ferlab.clin.qlinme;
 
+import bio.ferlab.clin.qlinme.handlers.SecurityHandler;
 import io.javalin.config.JavalinConfig;
 import io.javalin.openapi.plugin.OpenApiPlugin;
 import io.javalin.openapi.plugin.redoc.ReDocPlugin;
@@ -19,7 +20,7 @@ public class ApiDoc {
     config.registerPlugin(new ReDocPlugin(reDocConfiguration -> {
       reDocConfiguration.setDocumentationPath(deprecatedDocsPath);
       reDocConfiguration.setUiPath("/");
-      reDocConfiguration.setRoles(new RouteRole[]{App.Roles.ANONYMOUS});
+      reDocConfiguration.setRoles(new RouteRole[]{SecurityHandler.Roles.anonymous});
     }));
 
     log.info("OpenAPI doc: {}", deprecatedDocsPath);

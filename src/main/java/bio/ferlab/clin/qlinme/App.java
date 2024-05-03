@@ -16,6 +16,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import io.javalin.Javalin;
 import io.javalin.http.HttpResponseException;
+import io.javalin.http.HttpStatus;
 import io.javalin.json.JavalinJackson;
 import io.javalin.security.RouteRole;
 import io.javalin.validation.ValidationException;
@@ -37,7 +38,7 @@ public class App {
   public static final S3Client s3Client = new S3Client(config.awsEndpoint, config.awsAccessKey, config.awsSecretKey, 15000);
   //public static final FhirClient fhirClient = new FhirClient(config.fhirUrl, 15000, 20);
   public static final KeycloakClient keycloakClient = new KeycloakClient(config.securityIssuer, config.securityClient, config.securityAudience, 15000);
-  public static final SecurityHandler securityHandler = new SecurityHandler(config.securityIssuer, config.securityAudience, config.securityEnabled);
+  public static final SecurityHandler securityHandler = new SecurityHandler(config.securityIssuer, config.securityAudience);
   public static final AuthController authController = new AuthController(keycloakClient);
   public static final MetadataValidationService metadataValidationService = new MetadataValidationService();
   public static final FilesValidationService filesValidationService = new FilesValidationService();
@@ -67,23 +68,25 @@ public class App {
       .exception(ValidationException.class, exceptionHandler::handle)
       .exception(Exception.class, exceptionHandler::handle)
       .beforeMatched(ctx -> {
-        if (!ctx.routeRoles().contains(Roles.ANONYMOUS) && !Utils.isPublicRoute(ctx)) {
-          securityHandler.checkAuthorization(ctx);
+        if(config.securityEnabled) {
+          if (!ctx.routeRoles().contains(SecurityHandler.Roles.anonymous) && !Utils.isPublicRoute(ctx)) {
+            var roles = securityHandler.checkAuthorization(ctx);
+            if (ctx.routeRoles().stream().noneMatch(roles::contains)) {
+              throw new HttpResponseException(HttpStatus.FORBIDDEN.getCode(), "insufficient access rights");
+            }
+          }
         }
       })
-      .get(Routes.ACTUATOR_HEALTH, healthCheckHandler)
-      .get(Routes.AUTH_LOGIN, authController::login, Roles.ANONYMOUS)
-      .get(Routes.BATCH, batchController::batchRead, Roles.USER)
-      .post(Routes.BATCH, batchController::batchCreateUpdate, Roles.USER)
-      .get(Routes.BATCH_STATUS, batchController::batchStatus, Roles.USER)
-      .get(Routes.BATCH_HISTORY, batchController::batchHistory, Roles.USER)
-      .get(Routes.BATCH_HISTORY_BY_VERSION, batchController::batchHistoryByVersion, Roles.USER)
+      .get(Routes.ACTUATOR_HEALTH, healthCheckHandler) /* health is public */
+      .get(Routes.AUTH_LOGIN, authController::login, SecurityHandler.Roles.anonymous)
+      .get(Routes.BATCH, batchController::batchRead, SecurityHandler.Roles.clin_qlin_me)
+      .post(Routes.BATCH, batchController::batchCreateUpdate, SecurityHandler.Roles.clin_qlin_me)
+      .get(Routes.BATCH_STATUS, batchController::batchStatus, SecurityHandler.Roles.clin_qlin_me)
+      .get(Routes.BATCH_HISTORY, batchController::batchHistory, SecurityHandler.Roles.clin_qlin_me)
+      .get(Routes.BATCH_HISTORY_BY_VERSION, batchController::batchHistoryByVersion, SecurityHandler.Roles.clin_qlin_me)
       .start(config.port);
   }
 
-  enum Roles implements RouteRole {
-    ANONYMOUS,
-    USER,
-  }
+
 
 }

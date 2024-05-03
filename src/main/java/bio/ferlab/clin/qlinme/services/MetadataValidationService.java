@@ -55,7 +55,7 @@ public class MetadataValidationService {
 
   record Family(List<String> members){}
 
-  public MetadataValidation validateMetadata(Metadata m, String batchId, List<String> panelCodeValues, List<String> organizations) {
+  public MetadataValidation validateMetadata(Metadata m, String batchId, List<String> panelCodeValues, List<String> organizations, Map<String, List<String>> aliquotIDsByBatch) {
     var validation = new MetadataValidation();
     Map<String, List<String>> valuesByField = new TreeMap<>();
     Map<String, Family>families = new TreeMap<>();
@@ -76,7 +76,7 @@ public class MetadataValidationService {
           validateField(errorPrefix + ".ldmSampleId", ana.ldmSampleId(), validation, null);
           validateField(errorPrefix + ".labAliquotId", ana.labAliquotId(), validation, null);
           checkUnicity("labAliquotId", errorPrefix + ".labAliquotId", ana.labAliquotId(), valuesByField, validation);
-
+          checkAliquotId(errorPrefix + ".labAliquotId", ana.labAliquotId(), validation, batchId, aliquotIDsByBatch);
           var panelCode = Optional.ofNullable(ana.analysisCode()).filter(StringUtils::isNotBlank).orElse(ana.panelCode());
           validateField(errorPrefix + ".panelCode", panelCode, validation, panelCodeValues);
 
@@ -159,6 +159,18 @@ public class MetadataValidationService {
     }
     validateFamilies(families, validation);
     return validation;
+  }
+
+  private void checkAliquotId(String field, String aliquotId, MetadataValidation validation, String currentBatchId, Map<String, List<String>> aliquotIDsByBatch) {
+    if (StringUtils.isNotBlank(aliquotId)) {
+      for (var batchId: aliquotIDsByBatch.keySet()) {
+        var existing = aliquotIDsByBatch.get(batchId).stream().filter(ids -> ids.contains(aliquotId)).findFirst();
+        if (existing.isPresent() && !currentBatchId.equals(batchId)) {
+          validation.addError(field, "should be unique and exists in another batch: " + batchId);
+          break;
+        }
+      }
+    }
   }
 
   private void validateFamilies(Map<String, Family> families, MetadataValidation validation) {

@@ -12,16 +12,16 @@ import org.apache.http.HttpHeaders;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.CodeSystem;
 import org.hl7.fhir.r4.model.Organization;
+import org.hl7.fhir.r4.model.Task;
 
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 @Slf4j
 public class FhirClient {
 
   private final FhirContext context;
   private final IGenericClient genericClient;
-  private final TimedCache<String, List<String>> cache = new TimedCache<>(3600);
+  private final TimedCache<String, Object> cache = new TimedCache<>(3600);
 
   public FhirClient(String url, int timeoutMs, int poolSize) {
     context = FhirContext.forR4();
@@ -39,7 +39,7 @@ public class FhirClient {
   }
 
   public synchronized List<String> getPanelCodes(String rpt, boolean allowCache) {
-    return cache.get("panels").filter(c -> allowCache).orElseGet(() -> {
+    return (List<String>) cache.get("panels").filter(c -> allowCache).orElseGet(() -> {
       var response = this.genericClient.read().resource(CodeSystem.class).withId("analysis-request-code").withAdditionalHeader(HttpHeaders.AUTHORIZATION, rpt).execute();
       var values = response.getConcept().stream().map(CodeSystem.ConceptDefinitionComponent::getCode).sorted().toList();
       log.info("Fetched panels: {}", values);
@@ -48,12 +48,36 @@ public class FhirClient {
   }
 
   public synchronized List<String> getOrganizations(String rpt, boolean allowCache) {
-    return cache.get("organizations").filter(c -> allowCache).orElseGet(() -> {
+    return (List<String>) cache.get("organizations").filter(c -> allowCache).orElseGet(() -> {
       var response = this.genericClient.search().forResource(Organization.class).count(100).returnBundle(Bundle.class).withAdditionalHeader(HttpHeaders.AUTHORIZATION, rpt).execute();
       var values = response.getEntry().stream().map(e -> (Organization)e.getResource()).map(o -> o.getIdElement().getIdPart()).sorted().toList();
-      log.info("Fetched Organizations: {}", values);
+      log.info("Fetched organizations: {}", values);
       return cache.put("organizations", values);
     });
+  }
+
+  public synchronized Map<String, List<String>> getAliquotIDsByBatch(String rpt, boolean allowCache) {
+    return (Map<String, List<String>>) cache.get("aliquotids").filter(c -> allowCache).orElseGet(() -> {
+      var values = new TreeMap<String, List<String>>();
+      fetchAliquotIDs(rpt, values, 100, 0);
+      log.info("Fetched aliquotids: {}", values.values().stream().flatMap(List::stream).toList().size());
+      return cache.put("aliquotids", values);
+    });
+  }
+
+  private void fetchAliquotIDs(String rpt, Map<String, List<String>> aliquotIDsByBatchID, int size, int offset) {
+    var response = this.genericClient.search().forResource(Task.class).count(size).offset(offset).returnBundle(Bundle.class).withAdditionalHeader(HttpHeaders.AUTHORIZATION, rpt).execute();
+    var values = response.getEntry().stream().map(e -> (Task)e.getResource()).toList();
+    if (!values.isEmpty()) {
+      values
+        .forEach(t -> {
+          var batchId  = t.getGroupIdentifier().getValue();
+          var aliquotID = t.getExtensionByUrl("http://fhir.cqgc.ferlab.bio/StructureDefinition/sequencing-experiment").getExtensionByUrl("labAliquotId").getValue().toString();
+          aliquotIDsByBatchID.computeIfAbsent(batchId, k -> new ArrayList<>());
+          aliquotIDsByBatchID.get(batchId).add(aliquotID);
+      });
+      fetchAliquotIDs(rpt, aliquotIDsByBatchID, size, offset + size);
+    }
   }
 
 }

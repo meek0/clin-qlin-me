@@ -106,7 +106,8 @@ public class BatchController {
     var rpt = ctx.header(HttpHeaders.AUTHORIZATION);
     return metadataValidationService.validateMetadata(metadata, batchId,
       fhirClient.getPanelCodes(rpt, allowCache),
-      fhirClient.getOrganizations(rpt, allowCache));
+      fhirClient.getOrganizations(rpt, allowCache),
+      fhirClient.getAliquotIDsByBatch(rpt, allowCache));
   }
 
   private void validateAndCreateMetadata(Context ctx, Metadata metadata, String batchId, boolean save, boolean allowCache) {

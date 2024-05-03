@@ -77,9 +77,12 @@ public class MetadataValidationService {
           validateField(errorPrefix + ".labAliquotId", ana.labAliquotId(), validation, null);
           checkUnicity("labAliquotId", errorPrefix + ".labAliquotId", ana.labAliquotId(), valuesByField, validation);
           checkAliquotId(errorPrefix + ".labAliquotId", ana.labAliquotId(), validation, batchId, aliquotIDsByBatch);
-          var panelCode = Optional.ofNullable(ana.analysisCode()).filter(StringUtils::isNotBlank).orElse(ana.panelCode());
-          validateField(errorPrefix + ".panelCode", panelCode, validation, panelCodeValues);
 
+          var panelCode = Optional.ofNullable(ana.analysisCode()).filter(StringUtils::isNotBlank).orElse(ana.panelCode());
+          var panelCodeField = Optional.ofNullable(ana.analysisCode()).filter(StringUtils::isNotBlank).map(e -> "analysisCode").orElse("panelCode");
+          validateField(errorPrefix + "."+panelCodeField, panelCode, validation, panelCodeValues);
+          validatePanelCode(errorPrefix + "."+panelCodeField, m, panelCode, validation);
+          
           validateField(errorPrefix + ".sampleType", ana.sampleType(), validation, sampleTypeValues);
           validateField(errorPrefix + ".ldmServiceRequestId", ana.ldmServiceRequestId(), validation, null);
           validateField(errorPrefix + ".specimenType", ana.specimenType(), validation, specimenTypeValues);
@@ -159,6 +162,14 @@ public class MetadataValidationService {
     }
     validateFamilies(families, validation);
     return validation;
+  }
+
+  private void validatePanelCode(String field, Metadata m, String panelCode, MetadataValidation validation) {
+    if(StringUtils.isNoneBlank(m.submissionSchema(), panelCode)) {
+      if (SchemaValues.CQGC_Germline.name().equals(m.submissionSchema()) && "EXTUM".equals(panelCode)) {
+        validation.addError(field, "shouldn't be EXTUM for schema: " + SchemaValues.CQGC_Germline);
+      }
+    }
   }
 
   private void checkAliquotId(String field, String aliquotId, MetadataValidation validation, String currentBatchId, Map<String, List<String>> aliquotIDsByBatch) {

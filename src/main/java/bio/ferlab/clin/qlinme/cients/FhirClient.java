@@ -13,6 +13,7 @@ import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.CodeSystem;
 import org.hl7.fhir.r4.model.Organization;
 
+import java.util.Collections;
 import java.util.List;
 
 @Slf4j
@@ -40,7 +41,7 @@ public class FhirClient {
   public synchronized List<String> getPanelCodes(String rpt, boolean allowCache) {
     return cache.get("panels").filter(c -> allowCache).orElseGet(() -> {
       var response = this.genericClient.read().resource(CodeSystem.class).withId("analysis-request-code").withAdditionalHeader(HttpHeaders.AUTHORIZATION, rpt).execute();
-      var values = response.getConcept().stream().map(CodeSystem.ConceptDefinitionComponent::getCode).toList();
+      var values = response.getConcept().stream().map(CodeSystem.ConceptDefinitionComponent::getCode).sorted().toList();
       log.info("Fetched panels: {}", values);
       return cache.put("panels", values);
     });
@@ -49,7 +50,7 @@ public class FhirClient {
   public synchronized List<String> getOrganizations(String rpt, boolean allowCache) {
     return cache.get("organizations").filter(c -> allowCache).orElseGet(() -> {
       var response = this.genericClient.search().forResource(Organization.class).count(100).returnBundle(Bundle.class).withAdditionalHeader(HttpHeaders.AUTHORIZATION, rpt).execute();
-      var values = response.getEntry().stream().map(e -> (Organization)e.getResource()).map(o -> o.getIdElement().getIdPart()).toList();
+      var values = response.getEntry().stream().map(e -> (Organization)e.getResource()).map(o -> o.getIdElement().getIdPart()).sorted().toList();
       log.info("Fetched Organizations: {}", values);
       return cache.put("organizations", values);
     });

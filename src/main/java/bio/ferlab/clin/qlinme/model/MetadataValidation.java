@@ -19,10 +19,16 @@ public class MetadataValidation {
   @Setter
   private int analysesCount = 0;
   private final Map<String, List<String>> errors = new LinkedHashMap<>();
+  private final Map<String, List<String>> warnings = new LinkedHashMap<>();
 
-  public void addError(String field, String error) {
+  public void addError(String field, String msg) {
     errors.computeIfAbsent(field, f -> new ArrayList<>());
-    errors.get(field).add(error);
+    errors.get(field).add(msg);
+  }
+
+  public void addWarning(String field, String msg) {
+    warnings.computeIfAbsent(field, f -> new ArrayList<>());
+    warnings.get(field).add(msg);
   }
 
   @JsonIgnore
@@ -41,6 +47,10 @@ public class MetadataValidation {
 
   public Map<String, List<String>> getErrors() {
     return errors;
+  }
+
+  public Map<String, List<String>> getWarnings() {
+    return warnings;
   }
 
 }

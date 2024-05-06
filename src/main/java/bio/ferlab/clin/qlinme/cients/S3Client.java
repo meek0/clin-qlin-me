@@ -25,7 +25,7 @@ public class S3Client {
 
   private static final int MAX_KEYS = 1000;
   private static final String BACKUP_FOLDER = ".backup";
-  private static final String CACHE_FOLDER = ".cache";
+  public static final String CACHE_FOLDER = ".cache";
 
   @Getter
   private final software.amazon.awssdk.services.s3.S3Client s3Client;

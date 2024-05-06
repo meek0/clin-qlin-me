@@ -55,7 +55,7 @@ public class MetadataValidationService {
 
   record Family(List<String> members){}
 
-  public MetadataValidation validateMetadata(Metadata m, String batchId, List<String> panelCodeValues, List<String> organizations, Map<String, List<String>> aliquotIDsByBatch) {
+  public MetadataValidation validateMetadata(Metadata m, String batchId, List<String> panelCodeValues, List<String> organizations, Map<String, List<String>> aliquotIDsByBatch, List<Metadata.Patient> patients) {
     var validation = new MetadataValidation();
     Map<String, List<String>> valuesByField = new TreeMap<>();
     Map<String, Family>families = new TreeMap<>();
@@ -80,9 +80,8 @@ public class MetadataValidationService {
 
           var panelCode = Optional.ofNullable(ana.analysisCode()).filter(StringUtils::isNotBlank).orElse(ana.panelCode());
           var panelCodeField = Optional.ofNullable(ana.analysisCode()).filter(StringUtils::isNotBlank).map(e -> "analysisCode").orElse("panelCode");
-          validateField(errorPrefix + "."+panelCodeField, panelCode, validation, panelCodeValues);
-          validatePanelCode(errorPrefix + "."+panelCodeField, m, panelCode, validation);
-          
+          validatePanelCode(errorPrefix + "."+panelCodeField, m, panelCode, validation, panelCodeValues);
+
           validateField(errorPrefix + ".sampleType", ana.sampleType(), validation, sampleTypeValues);
           validateField(errorPrefix + ".ldmServiceRequestId", ana.ldmServiceRequestId(), validation, null);
           validateField(errorPrefix + ".specimenType", ana.specimenType(), validation, specimenTypeValues);
@@ -102,6 +101,7 @@ public class MetadataValidationService {
             validateDate(errorPrefix+ ".patient.birthDate", patient.birthDate(), validation, DateUtils.DDMMYYYY);
             validateField(errorPrefix + ".patient.status", patient.status(), validation, statusValues);
             validatePatient(errorPrefix + ".patient", patient, validation);
+            validatePatientDetails(errorPrefix + ".patient", patient, validation, patients);
             checkUnicity("mrn", errorPrefix + ".patient.mrn", patient.mrn(), valuesByField, validation);
             validateSpecialCharacters(errorPrefix+ ".patient.mrn", patient.mrn(), validation);
             checkUnicity("ramq", errorPrefix + ".patient.ramq", patient.ramq(), valuesByField, validation);
@@ -164,11 +164,37 @@ public class MetadataValidationService {
     return validation;
   }
 
-  private void validatePanelCode(String field, Metadata m, String panelCode, MetadataValidation validation) {
-    if(StringUtils.isNoneBlank(m.submissionSchema(), panelCode)) {
-      if (SchemaValues.CQGC_Germline.name().equals(m.submissionSchema()) && "EXTUM".equals(panelCode)) {
-        validation.addError(field, "shouldn't be EXTUM for schema: " + SchemaValues.CQGC_Germline);
+  private void validatePatientDetails(String field, Metadata.Patient patient, MetadataValidation validation, List<Metadata.Patient> patients) {
+    var existing = patients.stream()
+      .filter(p -> (p.mrn() != null && p.mrn().equals(patient.mrn()) && (p.ep() != null && p.ep().equals(patient.ep())))
+        || (p.ramq() != null && p.ramq().equals(patient.ramq()))).findFirst();
+    existing.ifPresent((e) -> {
+      validatePatientDetail(field, patient.mrn(), e.mrn(), validation, false);
+      validatePatientDetail(field, patient.ramq(), e.ramq(), validation, false);
+      validatePatientDetail(field, patient.firstName(), e.firstName(), validation, true);
+      validatePatientDetail(field, patient.lastName(), e.lastName(), validation, true);
+      validatePatientDetail(field, patient.sex(), e.sex(), validation, true);
+      validatePatientDetail(field, patient.birthDate(), e.birthDate(), validation, true);
+    });
+  }
+
+  private void validatePatientDetail(String field, String value, String existing, MetadataValidation validation, boolean warningOnly) {
+    if (StringUtils.isNotBlank(existing) && !existing.equals(value)) {
+      if (warningOnly) {
+        validation.addWarning(field, "should be: " + existing);
+      } else {
+        validation.addError(field, "should be: " + existing);
       }
+    }
+  }
+
+  private void validatePanelCode(String field, Metadata m, String panelCode, MetadataValidation validation, List<String> panelCodeValues) {
+    if (SchemaValues.CQGC_Exome_Tumeur_Seul.name().equals(m.submissionSchema()) && !"EXTUM".equals(panelCode)) {
+      validation.addError(field, "should be EXTUM for schema: " + SchemaValues.CQGC_Exome_Tumeur_Seul);
+    }
+
+    if(SchemaValues.CQGC_Germline.name().equals(m.submissionSchema())) {
+      validateField(field, panelCode, validation, panelCodeValues);
     }
   }
 

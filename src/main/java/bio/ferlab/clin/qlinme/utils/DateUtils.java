@@ -1,7 +1,10 @@
 package bio.ferlab.clin.qlinme.utils;
 
+import lombok.Data;
+
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
 
 public class DateUtils {
 
@@ -23,5 +26,9 @@ public class DateUtils {
     } catch(Exception e) {
       return false;
     }
+  }
+
+  public static String format(Date date, String format) {
+    return new SimpleDateFormat(format).format(date);
   }
 }

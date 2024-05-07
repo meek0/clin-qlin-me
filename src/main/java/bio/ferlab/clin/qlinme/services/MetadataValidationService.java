@@ -78,8 +78,8 @@ public class MetadataValidationService {
           checkUnicity("labAliquotId", errorPrefix + ".labAliquotId", ana.labAliquotId(), valuesByField, validation);
           checkAliquotId(errorPrefix + ".labAliquotId", ana.labAliquotId(), validation, batchId, aliquotIDsByBatch);
 
-          var panelCode = Optional.ofNullable(ana.analysisCode()).filter(StringUtils::isNotBlank).orElse(ana.panelCode());
-          var panelCodeField = Optional.ofNullable(ana.analysisCode()).filter(StringUtils::isNotBlank).map(e -> "analysisCode").orElse("panelCode");
+          var panelCode = Optional.ofNullable(ana.analysisCode()).orElse(ana.panelCode());
+          var panelCodeField = Optional.ofNullable(ana.analysisCode()).map(e -> "analysisCode").orElse("panelCode");
           validateField(errorPrefix + "."+panelCodeField, panelCode, validation, panelCodeValues);
           validatePanelCode(errorPrefix + "."+panelCodeField, m, panelCode, validation, panelCodeValues);
 

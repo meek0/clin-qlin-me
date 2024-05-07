@@ -80,6 +80,7 @@ public class MetadataValidationService {
 
           var panelCode = Optional.ofNullable(ana.analysisCode()).filter(StringUtils::isNotBlank).orElse(ana.panelCode());
           var panelCodeField = Optional.ofNullable(ana.analysisCode()).filter(StringUtils::isNotBlank).map(e -> "analysisCode").orElse("panelCode");
+          validateField(errorPrefix + "."+panelCodeField, panelCode, validation, panelCodeValues);
           validatePanelCode(errorPrefix + "."+panelCodeField, m, panelCode, validation, panelCodeValues);
 
           validateField(errorPrefix + ".sampleType", ana.sampleType(), validation, sampleTypeValues);
@@ -190,20 +191,16 @@ public class MetadataValidationService {
 
   private void validatePanelCode(String field, Metadata m, String panelCode, MetadataValidation validation, List<String> panelCodeValues) {
     if (SchemaValues.CQGC_Exome_Tumeur_Seul.name().equals(m.submissionSchema())) {
-      validateField(field, panelCode, validation, null);
       if (!"EXTUM".equals(panelCode)) {
         validation.addError(field, "should be EXTUM for schema: " + SchemaValues.CQGC_Exome_Tumeur_Seul);
       }
-
     }
 
     if(SchemaValues.CQGC_Germline.name().equals(m.submissionSchema())) {
-      validateField(field, panelCode, validation, panelCodeValues);
       if ("EXTUM".equals(panelCode)) {
         validation.addError(field, "shouldn't be EXTUM for schema: " + SchemaValues.CQGC_Germline);
       }
     }
-
   }
 
   private void checkAliquotId(String field, String aliquotId, MetadataValidation validation, String currentBatchId, Map<String, List<String>> aliquotIDsByBatch) {

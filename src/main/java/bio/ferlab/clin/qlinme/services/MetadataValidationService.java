@@ -173,7 +173,7 @@ public class MetadataValidationService {
       validatePatientDetail(field, patient.ramq(), e.ramq(), validation, false);
       validatePatientDetail(field, patient.firstName(), e.firstName(), validation, true);
       validatePatientDetail(field, patient.lastName(), e.lastName(), validation, true);
-      validatePatientDetail(field, patient.sex(), e.sex(), validation, true);
+      validatePatientDetail(field, StringUtils.toRootLowerCase(patient.sex()), StringUtils.toRootLowerCase(e.sex()), validation, true);
       validatePatientDetail(field, patient.birthDate(), e.birthDate(), validation, true);
     });
   }
@@ -189,13 +189,21 @@ public class MetadataValidationService {
   }
 
   private void validatePanelCode(String field, Metadata m, String panelCode, MetadataValidation validation, List<String> panelCodeValues) {
-    if (SchemaValues.CQGC_Exome_Tumeur_Seul.name().equals(m.submissionSchema()) && !"EXTUM".equals(panelCode)) {
-      validation.addError(field, "should be EXTUM for schema: " + SchemaValues.CQGC_Exome_Tumeur_Seul);
+    if (SchemaValues.CQGC_Exome_Tumeur_Seul.name().equals(m.submissionSchema())) {
+      validateField(field, panelCode, validation, null);
+      if (!"EXTUM".equals(panelCode)) {
+        validation.addError(field, "should be EXTUM for schema: " + SchemaValues.CQGC_Exome_Tumeur_Seul);
+      }
+
     }
 
     if(SchemaValues.CQGC_Germline.name().equals(m.submissionSchema())) {
       validateField(field, panelCode, validation, panelCodeValues);
+      if ("EXTUM".equals(panelCode)) {
+        validation.addError(field, "shouldn't be EXTUM for schema: " + SchemaValues.CQGC_Germline);
+      }
     }
+
   }
 
   private void checkAliquotId(String field, String aliquotId, MetadataValidation validation, String currentBatchId, Map<String, List<String>> aliquotIDsByBatch) {

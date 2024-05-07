@@ -19,7 +19,8 @@ import java.util.*;
 public class FhirClient {
 
   private static final int FETCH_SIZE = 100;
-  private static final List<String> PANELS_TO_IGNORE = List.of("EXTUM", "RGDI+");
+  // https://www.notion.so/ferlab/e6a3033cd3634b0d8948e1e4fde833e5?v=1afe0ff37cc943aa8c1144e2bb1bc649
+  private static final List<String> PANELS_TO_IGNORE = List.of("EXTUM", "RGDI+", "SCID", "SHEMA", "SSOLID", "TRATU", "");
 
   private final FhirContext context;
   private final IGenericClient genericClient;

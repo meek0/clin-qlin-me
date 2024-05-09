@@ -108,7 +108,7 @@ public class BatchController {
       fhirClient.getPanelCodes(rpt, allowCache),
       fhirClient.getOrganizations(rpt, allowCache),
       fhirClient.getAliquotIDsByBatch(rpt, metadataValidationService.extractAliquotIDs(metadata), allowCache),
-      fhirClient.getPatients(rpt, allowCache));
+      fhirClient.getPatients(rpt, metadataValidationService.extractMRNs(metadata), metadataValidationService.extractRAMQs(metadata), allowCache));
   }
 
   private void validateAndCreateMetadata(Context ctx, Metadata metadata, String batchId, boolean save, boolean allowCache) {

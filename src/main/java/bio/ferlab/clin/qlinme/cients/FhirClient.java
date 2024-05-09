@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 public class FhirClient {
 
   private static final int FETCH_SIZE = 100;
+  private static final int CHUNKED_SIZE = 10;
   // https://www.notion.so/ferlab/e6a3033cd3634b0d8948e1e4fde833e5?v=1afe0ff37cc943aa8c1144e2bb1bc649
   private static final List<String> PANELS_TO_IGNORE = List.of("RGDI+", "SCID", "SHEMA", "SSOLID", "TRATU");
 
@@ -64,7 +65,7 @@ public class FhirClient {
   }
 
   public Map<String, List<String>> getAliquotIDsByBatch(String rpt, List<String> aliquotIDs, boolean allowCache) {
-    var chunkedIDs = Lists.partition(aliquotIDs, 10);
+    var chunkedIDs = Lists.partition(aliquotIDs, CHUNKED_SIZE);
     var aliquotIDsByBatchID = new TreeMap<String, List<String>>();
     chunkedIDs.forEach(ids -> {
       var values = fetchTaskByAliquotIDs(rpt, ids, allowCache);
@@ -78,6 +79,7 @@ public class FhirClient {
   }
 
   private Map<String, List<String>> fetchTaskByAliquotIDs(String rpt, List<String> aliquotIDs, boolean allowCache) {
+    if (aliquotIDs.isEmpty()) return new TreeMap<>();  // don't request fhir with empty query param
     var cacheKey = "fhir.aliquotids."+String.join("_", aliquotIDs);
     return cache.get(cacheKey,  new TypeReference<Map<String, List<String>>>() { }).filter(c -> allowCache).orElseGet(() -> {
       var response = this.genericClient.search().byUrl("Task?aliquotid=" + String.join(",", aliquotIDs)).count(aliquotIDs.size()).returnBundle(Bundle.class).withAdditionalHeader(HttpHeaders.AUTHORIZATION, rpt).execute();
@@ -94,38 +96,43 @@ public class FhirClient {
     });
   }
 
-  public synchronized List<Metadata.Patient> getPatients(String rpt, boolean allowCache) {
-    return cache.get("fhir.patients",   new TypeReference<List<Metadata.Patient>>(){}).filter(c -> allowCache).orElseGet(() -> {
-      var values = new ArrayList<Metadata.Patient>();
-      fetchPatients(rpt, values, FETCH_SIZE / 2, 0);
-      log.info("Fetched patients: {}", values.size());
-      return cache.put("fhir.patients", values);
+  public synchronized List<Metadata.Patient> getPatients(String rpt, List<String> mrns, List<String> ramqs, boolean allowCache) {
+    var values = new ArrayList<>(Lists.partition(mrns, CHUNKED_SIZE).stream().map(ids -> fetchPatientOrPersonByIdentifier(rpt, "Patient", ids, allowCache)).flatMap(Collection::stream).toList());
+    var ignoredAlreadyFound = ramqs.stream().filter(ramq -> values.stream().noneMatch(alreadyFound -> ramq.equals(alreadyFound.ramq()))).toList();
+    values.addAll(Lists.partition(ignoredAlreadyFound, CHUNKED_SIZE).stream().map(ids -> fetchPatientOrPersonByIdentifier(rpt, "Person", ids, allowCache)).flatMap(Collection::stream).toList());
+    log.info("Found patients: {}", values.size());
+    return values;
+  }
+
+  private List<Metadata.Patient> fetchPatientOrPersonByIdentifier(String rpt, String type, List<String> ids, boolean allowCache) {
+    if (ids.isEmpty()) return List.of();  // don't request fhir with empty query param
+    var cacheKey = "fhir."+type.toLowerCase()+"."+String.join("_", ids);
+    return cache.get(cacheKey,  new TypeReference<List<Metadata.Patient>>() { }).filter(c -> allowCache).orElseGet(() -> {
+      var response = this.genericClient.search().byUrl(type + "?identifier=" + String.join(",", ids)).revInclude(Person.INCLUDE_PATIENT).count(ids.size()).returnBundle(Bundle.class).withAdditionalHeader(HttpHeaders.AUTHORIZATION, rpt).execute();
+      var patients = response.getEntry().stream().filter(e -> e.getResource() instanceof Patient).map(e -> (Patient) e.getResource()).toList();
+      var persons = response.getEntry().stream().filter(e -> e.getResource() instanceof Person).map(e -> (Person) e.getResource()).toList();
+      log.debug("Fetch patients: {}", patients.size());
+      return cache.put(cacheKey, extractPatientInfo(patients, persons));
     });
   }
 
-  private void fetchPatients(String rpt, List<Metadata.Patient> allPatients, int size, int offset) {
-    var response = this.genericClient.search().forResource(Patient.class).revInclude(Person.INCLUDE_PATIENT).count(size).offset(offset).returnBundle(Bundle.class).withAdditionalHeader(HttpHeaders.AUTHORIZATION, rpt).execute();
-    var patients = response.getEntry().stream().filter(e -> e.getResource() instanceof Patient).map(e -> (Patient)e.getResource()).toList();
-    var persons = response.getEntry().stream().filter(e -> e.getResource() instanceof Person).map(e -> (Person)e.getResource()).toList();
-    if (!patients.isEmpty()) {
-      for(var patient: patients) {
-        var person = persons.stream().filter(p -> p.getLink().stream().anyMatch(l -> l.getTarget().getReference().equals("Patient/"+patient.getIdElement().getIdPart()))).findFirst().orElse(new Person());
-        allPatients.add(new Metadata.Patient(
-          Optional.ofNullable(person.getNameFirstRep()).map(HumanName::getGivenAsSingleString).orElse(null),
-          Optional.ofNullable(person.getNameFirstRep()).map(HumanName::getFamily).orElse(null),
-          Optional.ofNullable(person.getGender()).map(Enumerations.AdministrativeGender::toCode).orElse(null),
-          person.getIdentifier().stream().filter(i -> "JHN".equals(i.getType().getCodingFirstRep().getCode())).findFirst().map(Identifier::getValue).orElse(null),
-          Optional.ofNullable(person.getBirthDate()).map(d -> DateUtils.format(d, DateUtils.DDMMYYYY)).orElse(null),
-          patient.getIdentifier().stream().filter(i -> "MR".equals(i.getType().getCodingFirstRep().getCode())).findFirst().map(Identifier::getValue).orElse(null),
-          Optional.ofNullable(patient.getManagingOrganization()).map(o -> o.getReference().replace("Organization/", "")).orElse(null),
-          null,
-          null,
-          null,
-          false
-          ));
-      }
-      fetchPatients(rpt, allPatients, size, offset + size);
-    }
+  private List<Metadata.Patient> extractPatientInfo(List<Patient> patients, List<Person> persons) {
+    return patients.stream().map(patient -> {
+      var person = persons.stream().filter(p -> p.getLink().stream().anyMatch(l -> l.getTarget().getReference().equals("Patient/" + patient.getIdElement().getIdPart()))).findFirst().orElse(new Person());
+      return new Metadata.Patient(
+        Optional.ofNullable(person.getNameFirstRep()).map(HumanName::getGivenAsSingleString).orElse(null),
+        Optional.ofNullable(person.getNameFirstRep()).map(HumanName::getFamily).orElse(null),
+        Optional.ofNullable(person.getGender()).map(Enumerations.AdministrativeGender::toCode).orElse(null),
+        person.getIdentifier().stream().filter(i -> "JHN".equals(i.getType().getCodingFirstRep().getCode())).findFirst().map(Identifier::getValue).orElse(null),
+        Optional.ofNullable(person.getBirthDate()).map(d -> DateUtils.format(d, DateUtils.DDMMYYYY)).orElse(null),
+        patient.getIdentifier().stream().filter(i -> "MR".equals(i.getType().getCodingFirstRep().getCode())).findFirst().map(Identifier::getValue).orElse(null),
+        Optional.ofNullable(patient.getManagingOrganization()).map(o -> o.getReference().replace("Organization/", "")).orElse(null),
+        null,
+        null,
+        null,
+        false
+      );
+    }).toList();
   }
 
 }

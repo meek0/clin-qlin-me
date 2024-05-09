@@ -64,7 +64,7 @@ public class FhirClient {
     });
   }
 
-  public Map<String, List<String>> getAliquotIDsByBatch(String rpt, List<String> aliquotIDs, boolean allowCache) {
+  public synchronized Map<String, List<String>> getAliquotIDsByBatch(String rpt, List<String> aliquotIDs, boolean allowCache) {
     var chunkedIDs = Lists.partition(aliquotIDs, CHUNKED_SIZE);
     var aliquotIDsByBatchID = new TreeMap<String, List<String>>();
     chunkedIDs.forEach(ids -> {

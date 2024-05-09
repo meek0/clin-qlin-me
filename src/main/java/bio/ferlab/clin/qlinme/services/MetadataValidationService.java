@@ -320,23 +320,27 @@ public class MetadataValidationService {
   }
 
   public List<String> extractAliquotIDs(Metadata metadata) {
-    return Optional.ofNullable(metadata).map(Metadata::analyses).orElse(List.of()).stream().map(Metadata.Analysis::labAliquotId).filter(StringUtils::isNotBlank)
-      .sorted().distinct().toList();
+    try {
+      return metadata.analyses().stream().map(Metadata.Analysis::labAliquotId).filter(StringUtils::isNotBlank).distinct().sorted().toList();
+    } catch (Exception e) {
+      return List.of();
+    }
   }
 
-
   public List<String> extractMRNs(Metadata metadata) {
-    return Optional.ofNullable(metadata).map(Metadata::analyses).orElse(List.of()).stream()
-      .map(Metadata.Analysis::patient)
-      .map(Metadata.Patient::mrn)
-      .filter(StringUtils::isNotBlank).sorted().distinct().toList();
+    try {
+      return metadata.analyses().stream().map(Metadata.Analysis::patient).map(Metadata.Patient::mrn).filter(StringUtils::isNotBlank).distinct().sorted().toList();
+    } catch (Exception e) {
+      return List.of();
+    }
   }
 
   public List<String> extractRAMQs(Metadata metadata) {
-    return Optional.ofNullable(metadata).map(Metadata::analyses).orElse(List.of()).stream()
-      .map(Metadata.Analysis::patient)
-      .map(Metadata.Patient::ramq)
-      .filter(StringUtils::isNotBlank).sorted().distinct().toList();
+    try {
+      return metadata.analyses().stream().map(Metadata.Analysis::patient).map(Metadata.Patient::ramq).filter(StringUtils::isNotBlank).distinct().sorted().toList();
+    } catch (Exception e) {
+      return List.of();
+    }
   }
 
 }

@@ -107,7 +107,7 @@ public class BatchController {
     return metadataValidationService.validateMetadata(metadata, batchId,
       fhirClient.getPanelCodes(rpt, allowCache),
       fhirClient.getOrganizations(rpt, allowCache),
-      fhirClient.getAliquotIDsByBatch(rpt, allowCache),
+      fhirClient.getAliquotIDsByBatch(rpt, metadataValidationService.extractAliquotIDs(metadata), allowCache),
       fhirClient.getPatients(rpt, allowCache));
   }
 

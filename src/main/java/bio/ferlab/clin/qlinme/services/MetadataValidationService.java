@@ -319,5 +319,8 @@ public class MetadataValidationService {
     }
   }
 
+  public List<String> extractAliquotIDs(Metadata metadata) {
+    return Optional.ofNullable(metadata).map(Metadata::analyses).orElse(List.of()).stream().map(Metadata.Analysis::labAliquotId).filter(StringUtils::isNotBlank).toList();
+  }
 
 }

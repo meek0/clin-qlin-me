@@ -9,11 +9,13 @@ import ca.uhn.fhir.context.PerformanceOptionsEnum;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.client.api.ServerValidationModeEnum;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpHeaders;
 import org.hl7.fhir.r4.model.*;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class FhirClient {
@@ -61,28 +63,35 @@ public class FhirClient {
     });
   }
 
-  public synchronized Map<String, List<String>> getAliquotIDsByBatch(String rpt, boolean allowCache) {
-    return cache.get("fhir.aliquotids",  new TypeReference<Map<String, List<String>>>() { }).filter(c -> allowCache).orElseGet(() -> {
-      var values = new TreeMap<String, List<String>>();
-      fetchAliquotIDs(rpt, values, FETCH_SIZE, 0);
-      log.info("Fetched aliquotids: {}", values.values().stream().flatMap(List::stream).toList().size());
-      return cache.put("fhir.aliquotids", values);
+  public Map<String, List<String>> getAliquotIDsByBatch(String rpt, List<String> aliquotIDs, boolean allowCache) {
+    var chunkedIDs = Lists.partition(aliquotIDs, 10);
+    var aliquotIDsByBatchID = new TreeMap<String, List<String>>();
+    chunkedIDs.forEach(ids -> {
+      var values = fetchTaskByAliquotIDs(rpt, ids, allowCache);
+      values.keySet().forEach(batchId -> {
+        aliquotIDsByBatchID.computeIfAbsent(batchId, k -> new ArrayList<>());
+        aliquotIDsByBatchID.get(batchId).addAll(values.get(batchId));
+      });
     });
+    log.info("Found aliquot IDs: {}", aliquotIDsByBatchID.values().stream().flatMap(List::stream).toList().size());
+    return aliquotIDsByBatchID;
   }
 
-  private void fetchAliquotIDs(String rpt, Map<String, List<String>> aliquotIDsByBatchID, int size, int offset) {
-    var response = this.genericClient.search().forResource(Task.class).count(size).offset(offset).returnBundle(Bundle.class).withAdditionalHeader(HttpHeaders.AUTHORIZATION, rpt).execute();
-    var values = response.getEntry().stream().map(e -> (Task)e.getResource()).toList();
-    if (!values.isEmpty()) {
-      values
+  private Map<String, List<String>> fetchTaskByAliquotIDs(String rpt, List<String> aliquotIDs, boolean allowCache) {
+    var cacheKey = "fhir.aliquotids."+String.join("_", aliquotIDs);
+    return cache.get(cacheKey,  new TypeReference<Map<String, List<String>>>() { }).filter(c -> allowCache).orElseGet(() -> {
+      var response = this.genericClient.search().byUrl("Task?aliquotid=" + String.join(",", aliquotIDs)).count(aliquotIDs.size()).returnBundle(Bundle.class).withAdditionalHeader(HttpHeaders.AUTHORIZATION, rpt).execute();
+      var aliquotIDsByBatchID = new TreeMap<String, List<String>>();
+      response.getEntry().stream().map(e -> (Task)e.getResource())
         .forEach(t -> {
           var batchId  = t.getGroupIdentifier().getValue();
           var aliquotID = t.getExtensionByUrl("http://fhir.cqgc.ferlab.bio/StructureDefinition/sequencing-experiment").getExtensionByUrl("labAliquotId").getValue().toString();
           aliquotIDsByBatchID.computeIfAbsent(batchId, k -> new ArrayList<>());
           aliquotIDsByBatchID.get(batchId).add(aliquotID);
-      });
-      fetchAliquotIDs(rpt, aliquotIDsByBatchID, size, offset + size);
-    }
+        });
+      log.debug("Fetch aliquot IDs: {}", aliquotIDsByBatchID.values().stream().flatMap(List::stream).toList().size());
+      return cache.put(cacheKey, aliquotIDsByBatchID);
+    });
   }
 
   public synchronized List<Metadata.Patient> getPatients(String rpt, boolean allowCache) {

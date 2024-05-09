@@ -26,28 +26,29 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class App {
 
-  // all singletons
-  public static final Config config = new Config();
-  public static final JavalinJackson objectMapper = new JavalinJackson().updateMapper(mapper -> {
-    mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-    //mapper.setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE);
-  });
-  public static final HealthCheckHandler healthCheckHandler = new HealthCheckHandler();
-  public static final Slf4jRequestLogger requestLogger = new Slf4jRequestLogger();
-  public static final ExceptionHandler exceptionHandler = new ExceptionHandler();
-  public static final S3Client s3Client = new S3Client(config.awsEndpoint, config.awsAccessKey, config.awsSecretKey, 15000);
-  public static final KeycloakClient keycloakClient = new KeycloakClient(config.securityIssuer, config.securityClient, config.securityAudience, 15000);
-  public static final SecurityHandler securityHandler = new SecurityHandler(config.securityIssuer, config.securityAudience);
-  public static final S3TimedCache cache = new S3TimedCache(App.s3Client, App.config.awsBucket, App.objectMapper.getMapper(), 4);
-  public static final FhirClient fhirClient = new FhirClient(config.fhirUrl, 15000, 20, cache);
-  public static final AuthController authController = new AuthController(keycloakClient);
-  public static final MetadataValidationService metadataValidationService = new MetadataValidationService();
-  public static final FilesValidationService filesValidationService = new FilesValidationService();
-  public static final VCFsValidationService vcfsValidationService = new VCFsValidationService(config.awsBucket, s3Client);
-  public static final BatchController batchController = new BatchController(s3Client, config.awsBucket, metadataValidationService, filesValidationService, vcfsValidationService, objectMapper, fhirClient);
+  public static final Config CONFIG = new Config();
 
   public static void main(String[] args) {
+    // all singletons
+    final JavalinJackson objectMapper = new JavalinJackson().updateMapper(mapper -> {
+      mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+      mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+      //mapper.setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE);
+    });
+    final HealthCheckHandler healthCheckHandler = new HealthCheckHandler();
+    final Slf4jRequestLogger requestLogger = new Slf4jRequestLogger();
+    final ExceptionHandler exceptionHandler = new ExceptionHandler();
+    final S3Client s3Client = new S3Client(CONFIG.awsEndpoint, CONFIG.awsAccessKey, CONFIG.awsSecretKey, 15000);
+    final KeycloakClient keycloakClient = new KeycloakClient(CONFIG.securityIssuer, CONFIG.securityClient, CONFIG.securityAudience, 15000);
+    final SecurityHandler securityHandler = new SecurityHandler(CONFIG.securityIssuer, CONFIG.securityAudience);
+    final S3TimedCache fhirCache = new S3TimedCache(s3Client, CONFIG.awsBucket, objectMapper.getMapper(), CONFIG.fhirCacheInHour);
+    final FhirClient fhirClient = new FhirClient(CONFIG.fhirUrl, 15000, 20, fhirCache);
+    final AuthController authController = new AuthController(keycloakClient);
+    final MetadataValidationService metadataValidationService = new MetadataValidationService();
+    final FilesValidationService filesValidationService = new FilesValidationService();
+    final VCFsValidationService vcfsValidationService = new VCFsValidationService(CONFIG.awsBucket, s3Client);
+    final BatchController batchController = new BatchController(s3Client, CONFIG.awsBucket, metadataValidationService, filesValidationService, vcfsValidationService, objectMapper, fhirClient);
+
     var app = Javalin.create(conf -> {
         conf.useVirtualThreads = true;
         conf.showJavalinBanner = false;
@@ -57,11 +58,11 @@ public class App {
         conf.events(event -> {
           event.serverStarting(() -> {
             log.info("App is starting with Cores: {}", Runtime.getRuntime().availableProcessors());
-            log.info("Current profile: {}", config.env);
+            log.info("Current log level: {}", CONFIG.logLevel);
           });
           event.serverStarted(() -> {
-            log.info("HTTP server started on port: " + config.port);
-            log.info("App started in {}ms", System.currentTimeMillis() - config.start);
+            log.info("HTTP server started on port: " + CONFIG.port);
+            log.info("App started in {}ms", System.currentTimeMillis() - CONFIG.start);
           });
         });
         ApiDoc.create(conf);
@@ -70,7 +71,7 @@ public class App {
       .exception(ValidationException.class, exceptionHandler::handle)
       .exception(Exception.class, exceptionHandler::handle)
       .beforeMatched(ctx -> {
-        if(config.securityEnabled) {
+        if(CONFIG.securityEnabled) {
           if (!ctx.routeRoles().contains(SecurityHandler.Roles.anonymous) && !Utils.isPublicRoute(ctx)) {
             var roles = securityHandler.checkAuthorization(ctx);
             if (ctx.routeRoles().stream().noneMatch(roles::contains)) {
@@ -86,7 +87,9 @@ public class App {
       .get(Routes.BATCH_STATUS, batchController::batchStatus, SecurityHandler.Roles.clin_qlin_me)
       .get(Routes.BATCH_HISTORY, batchController::batchHistory, SecurityHandler.Roles.clin_qlin_me)
       .get(Routes.BATCH_HISTORY_BY_VERSION, batchController::batchHistoryByVersion, SecurityHandler.Roles.clin_qlin_me)
-      .start(config.port);
+      .start(CONFIG.port);
+
+    Runtime.getRuntime().addShutdownHook(new Thread(app::stop));
   }
 
 

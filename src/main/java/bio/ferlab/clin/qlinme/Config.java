@@ -13,7 +13,7 @@ public class Config {
   // public routes aren't logged
   public final List<String> publics = List.of("/actuator/health", "/favicon.ico", "/webjars", "/api/openapi.json");
   public final Integer port = getEnv("PORT").map(Integer::parseInt).orElse(7979);
-  public final Env env = getEnv("ENV").map(Env::valueOf).orElse(Env.prod);
+  public final LogLevel logLevel = getEnv("LOG_LEVEL").map(LogLevel::valueOf).orElse(LogLevel.error);
 
   public final String awsAccessKey = getEnv("AWS_ACCESS_KEY").orElse("minio");
   public final String awsSecretKey = getEnv("AWS_SECRET_KEY").orElse(("minio123"));
@@ -21,6 +21,7 @@ public class Config {
   public final String awsBucket = getEnv("AWS_BUCKET").orElse("clin-qa-app-files-import");
 
   public final String fhirUrl = getEnv("FHIR_URL").orElse("https://fhir.qa.cqgc.hsj.rtss.qc.ca/fhir");
+  public final Integer fhirCacheInHour = getEnv("FHIR_CACHE_IN_HOUR").map(Integer::parseInt).orElse(4);
 
   public final boolean securityEnabled = getEnv("SECURITY_ENABLED").map(Boolean::parseBoolean).orElse(true);
 
@@ -30,9 +31,21 @@ public class Config {
 
   public Config() {
     var rootLogger = ((ch.qos.logback.classic.Logger) LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME));
-    rootLogger.setLevel(Env.prod.equals(env) ? Level.ERROR : Level.INFO);
     var qlinLogger = ((ch.qos.logback.classic.Logger) LoggerFactory.getLogger("bio.ferlab.clin"));
-    qlinLogger.setLevel(Env.prod.equals(env) ? Level.INFO : Level.DEBUG);
+    switch (logLevel) {
+      case debug:
+        rootLogger.setLevel(Level.INFO);
+        qlinLogger.setLevel(Level.DEBUG);
+        break;
+      case info:
+        rootLogger.setLevel(Level.INFO);
+        qlinLogger.setLevel(Level.INFO);
+        break;
+      case error:
+        rootLogger.setLevel(Level.ERROR);
+        qlinLogger.setLevel(Level.INFO);
+        break;
+    }
   }
 
   private Optional<String> getEnv(String name) {
@@ -43,8 +56,9 @@ public class Config {
     return Optional.ofNullable(System.getenv(name)).orElseThrow(() -> new IllegalStateException("Missing env var: " + name));
   }
 
-  enum Env {
-    qa,
-    prod
+  enum LogLevel {
+    debug,
+    info,
+    error,
   }
 }

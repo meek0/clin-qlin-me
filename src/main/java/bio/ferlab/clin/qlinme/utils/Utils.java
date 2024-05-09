@@ -20,7 +20,7 @@ public class Utils {
   }
 
   public static boolean isPublicRoute(Context ctx) {
-    return App.config.publics.stream().anyMatch(p -> ctx.req().getRequestURI().startsWith(p));
+    return App.CONFIG.publics.stream().anyMatch(p -> ctx.req().getRequestURI().startsWith(p));
   }
 
   public static <T> Map<T, Integer> countBy(List<T> inputList) {

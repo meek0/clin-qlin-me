@@ -29,11 +29,11 @@ public class S3TimedCache {
 
   private boolean isExpired(String key) {
     try {
-      var lastModified = s3Client.getS3Client().headObject(HeadObjectRequest.builder().bucket(bucket).key(key).build()).lastModified();
+      var lastModified = s3Client.getS3Client().headObject(HeadObjectRequest.builder().bucket(bucket).key(buildCacheKey(key)).build()).lastModified();
       var expirationDateTime = lastModified.plus(this.cacheTimeoutInHour, ChronoUnit.HOURS);
       return Instant.now().isAfter(expirationDateTime);
     } catch (NoSuchKeyException e) {
-      return false;
+      return true;
     }
   }
 
@@ -44,7 +44,7 @@ public class S3TimedCache {
       try {
         return Optional.of(objectMapper.readValue(s3Client.getS3Client().getObject(GetObjectRequest.builder().bucket(bucket).key(buildCacheKey(key)).build()), t));
       } catch (Exception e) {
-        log.warn("Deleting cache: {} cause: {}", key, e.getMessage());
+        log.warn("Invalidate cache: {} cause: {}", key, e.getMessage());
         this.s3Client.getS3Client().deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(buildCacheKey(key)).build());
         return Optional.empty();
       }

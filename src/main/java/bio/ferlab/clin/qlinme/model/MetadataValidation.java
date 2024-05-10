@@ -17,6 +17,8 @@ public class MetadataValidation {
   @Setter
   private String schema;
   @Setter
+  private String batchId;
+  @Setter
   private int analysesCount = 0;
   private final Map<String, List<String>> errors = new LinkedHashMap<>();
   private final Map<String, List<String>> warnings = new LinkedHashMap<>();
@@ -39,6 +41,10 @@ public class MetadataValidation {
 
   public String getSchema() {
     return schema;
+  }
+
+  public String getBatchId() {
+    return batchId;
   }
 
   public int getAnalysesCount() {

@@ -171,45 +171,45 @@ public class MetadataValidationService {
       .filter(p -> (p.mrn() != null && p.mrn().equals(patient.mrn()) && (p.ep() != null && p.ep().equals(patient.ep())))
         || (p.ramq() != null && p.ramq().equals(patient.ramq()))).findFirst();
     existing.ifPresent((e) -> {
-      validatePatientDetail(field, patient.mrn(), e.mrn(), validation, false);
-      validatePatientDetail(field, patient.ramq(), e.ramq(), validation, false);
-      validatePatientDetail(field, patient.firstName(), e.firstName(), validation, true);
-      validatePatientDetail(field, patient.lastName(), e.lastName(), validation, true);
-      validatePatientDetail(field, StringUtils.toRootLowerCase(patient.sex()), StringUtils.toRootLowerCase(e.sex()), validation, true);
-      validatePatientDetail(field, patient.birthDate(), e.birthDate(), validation, true);
+      validatePatientDetail(field+".mrn", patient.mrn(), e.mrn(), validation, false);
+      validatePatientDetail(field+".ramq", patient.ramq(), e.ramq(), validation, false);
+      validatePatientDetail(field+".firstName", patient.firstName(), e.firstName(), validation, true);
+      validatePatientDetail(field+".lastName", patient.lastName(), e.lastName(), validation, true);
+      validatePatientDetail(field+".sex", StringUtils.toRootLowerCase(patient.sex()), StringUtils.toRootLowerCase(e.sex()), validation, true);
+      validatePatientDetail(field+".birthDate", patient.birthDate(), e.birthDate(), validation, true);
     });
   }
 
   private void validatePatientDetail(String field, String value, String existing, MetadataValidation validation, boolean warningOnly) {
     if (StringUtils.isNotBlank(existing) && !existing.equals(value)) {
       if (warningOnly) {
-        validation.addWarning(field, "should be: " + existing);
+        validation.addWarning(field, "'" + value + "'" + " should be: " + existing);
       } else {
-        validation.addError(field, "should be: " + existing);
+        validation.addError(field, "'" + value + "'" + " should be: " + existing);
       }
     }
   }
 
-  private void validatePanelCode(String field, Metadata m, String panelCode, MetadataValidation validation, List<String> panelCodeValues) {
+  private void validatePanelCode(String field, Metadata m, String value, MetadataValidation validation, List<String> panelCodeValues) {
     if (SchemaValues.CQGC_Exome_Tumeur_Seul.name().equals(m.submissionSchema())) {
-      if (!"EXTUM".equals(panelCode)) {
+      if (!"EXTUM".equals(value)) {
         validation.addError(field, "should be EXTUM for schema: " + SchemaValues.CQGC_Exome_Tumeur_Seul);
       }
     }
 
     if(SchemaValues.CQGC_Germline.name().equals(m.submissionSchema())) {
-      if ("EXTUM".equals(panelCode)) {
+      if ("EXTUM".equals(value)) {
         validation.addError(field, "shouldn't be EXTUM for schema: " + SchemaValues.CQGC_Germline);
       }
     }
   }
 
-  private void checkAliquotId(String field, String aliquotId, MetadataValidation validation, String currentBatchId, Map<String, List<String>> aliquotIDsByBatch) {
-    if (StringUtils.isNotBlank(aliquotId)) {
+  private void checkAliquotId(String field, String value, MetadataValidation validation, String currentBatchId, Map<String, List<String>> aliquotIDsByBatch) {
+    if (StringUtils.isNotBlank(value)) {
       for (var batchId: aliquotIDsByBatch.keySet()) {
-        var existing = aliquotIDsByBatch.get(batchId).stream().filter(ids -> ids.contains(aliquotId)).findFirst();
+        var existing = aliquotIDsByBatch.get(batchId).stream().filter(ids -> ids.contains(value)).findFirst();
         if (existing.isPresent() && !currentBatchId.equals(batchId)) {
-          validation.addError(field, "should be unique and exists in another batch: " + batchId);
+          validation.addError(field, "'" + value + "'" + " should be unique and exists in another batch: " + batchId);
           break;
         }
       }
@@ -243,13 +243,13 @@ public class MetadataValidationService {
     }
   }
 
-  private void validateSpecimenType(String field, Metadata m, String specimenType, MetadataValidation validation) {
-    if(StringUtils.isNoneBlank(m.submissionSchema(), specimenType)) {
-      if (SchemaValues.CQGC_Germline.name().equals(m.submissionSchema()) && !SpecimenType.NBL.name().equals(specimenType)) {
-        validation.addError(field, "should be: NBL for schema: "+SchemaValues.CQGC_Germline);
+  private void validateSpecimenType(String field, Metadata m, String value, MetadataValidation validation) {
+    if(StringUtils.isNoneBlank(m.submissionSchema(), value)) {
+      if (SchemaValues.CQGC_Germline.name().equals(m.submissionSchema()) && !SpecimenType.NBL.name().equals(value)) {
+        validation.addError(field, "'" + value + "'" + " should be: NBL for schema: "+SchemaValues.CQGC_Germline);
       }
-      if (SchemaValues.CQGC_Exome_Tumeur_Seul.name().equals(m.submissionSchema()) && !SpecimenType.TUMOR.name().equals(specimenType)) {
-        validation.addError(field, "should be: TUMOR for schema: "+SchemaValues.CQGC_Exome_Tumeur_Seul);
+      if (SchemaValues.CQGC_Exome_Tumeur_Seul.name().equals(m.submissionSchema()) && !SpecimenType.TUMOR.name().equals(value)) {
+        validation.addError(field, "'" + value + "'" + " should be: TUMOR for schema: "+SchemaValues.CQGC_Exome_Tumeur_Seul);
       }
     }
   }
@@ -257,7 +257,7 @@ public class MetadataValidationService {
   private void validateDate(String field, String value, MetadataValidation validation, String...formats) {
     if(StringUtils.isNotBlank(value)) {
       if(!DateUtils.isValid(value, formats)) {
-        validation.addError(field, "should be formatted like: " + String.join(" or ", formats));
+        validation.addError(field, "'" + value + "'" + " should be formatted like: " + String.join(" or ", formats));
       }
     }
   }
@@ -270,20 +270,20 @@ public class MetadataValidationService {
         validation.addError(field, "is missing");
       }
     } else if (values != null && !values.contains(value)) {
-      validation.addError(field, value + " should be " + values);
+      validation.addError(field, "'" + value + "'" + " should be " + values);
     }
   }
 
-  private void validateRunName(String field, String runName, MetadataValidation validation, String batchId) {
-    if (runName != null && !batchId.contains(runName)) {
-      validation.addError(field, runName + " should be similar to batch_id: " + batchId);
+  private void validateRunName(String field, String value, MetadataValidation validation, String batchId) {
+    if (value != null && !batchId.contains(value)) {
+      validation.addError(field, "'" + value + "'" + " should be similar to batch_id: " + batchId);
     }
   }
 
   private void validateSpecialCharacters(String field, String value, MetadataValidation validation) {
     if(StringUtils.isNotBlank(value)) {
       if(StringUtils.length(value) < 2 || !NameUtils.hasNoSpecialCharacters(value)){
-        validation.addError(field, "should have length >= 2 and no special characters, cf. regex: "+NameUtils.NO_SPECIAL_CHARACTERS);
+        validation.addError(field, "'" + value + "'" + " should have length >= 2 and no special characters, cf. regex: "+NameUtils.NO_SPECIAL_CHARACTERS);
       }
     }
   }
@@ -291,7 +291,7 @@ public class MetadataValidationService {
   private void validateRamq(String field, String value, MetadataValidation validation) {
     if (StringUtils.isNotBlank(value)) {
       if(!NameUtils.isValidRamq(value)){
-        validation.addError(field, "should be a valid RAMQ number");
+        validation.addError(field, "'" + value + "'" + " should be a valid RAMQ number");
       }
     }
   }
@@ -313,7 +313,7 @@ public class MetadataValidationService {
     var previousFieldValues = valuesByField.get(globalField);
     if (value != null) {
       if (previousFieldValues.contains(value)) {
-        validation.addError(field, "should be unique");
+        validation.addError(field, "'" + value + "'" + " should be unique");
       } else {
         previousFieldValues.add(value);
       }

@@ -24,7 +24,7 @@ public class Config {
   public final Integer fhirCacheInHour = getEnv("FHIR_CACHE_IN_HOUR").map(Integer::parseInt).orElse(4);
 
   public final boolean securityEnabled = getEnv("SECURITY_ENABLED").map(Boolean::parseBoolean).orElse(true);
-
+  public final String securitySystem = getEnv("SECURITY_SYSTEM").orElse("clin-system");
   public final String securityIssuer = getEnv("SECURITY_ISSUER").orElse("https://auth.qa.cqgc.hsj.rtss.qc.ca/realms/clin");
   public final String securityClient = getEnv("SECURITY_CLIENT").orElse("clin-client");
   public final String securityAudience = getEnv("SECURITY_AUDIENCE").orElse("clin-acl");

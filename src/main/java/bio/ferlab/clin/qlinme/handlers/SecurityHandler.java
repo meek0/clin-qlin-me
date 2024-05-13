@@ -8,6 +8,7 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTDecodeException;
 import com.auth0.jwt.exceptions.JWTVerificationException;
+import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.google.common.base.Enums;
 import io.javalin.http.Context;
@@ -40,11 +41,13 @@ public class SecurityHandler {
   private final JwkProvider jwkProvider;
   private final String issuer;
   private final String audience;
+  private final String system;
 
-  public SecurityHandler(String issuer, String audience) {
+  public SecurityHandler(String issuer, String audience, String system) {
     try {
       this.issuer = issuer;
       this.audience = audience;
+      this.system = system;
       final String jwkUrl = StringUtils.appendIfMissing(issuer, "/") + "protocol/openid-connect/certs";
       this.jwkProvider = new JwkProviderBuilder(new URL(jwkUrl)).build(); // cached + rate limited by default
     } catch (Exception e) {
@@ -102,10 +105,16 @@ public class SecurityHandler {
       .map(c -> c.roles)
       .orElseThrow(() -> new HttpResponseException(HttpStatus.BAD_REQUEST.getCode(), "missing " + TOKEN_ATTR_REALM_ACCESS)));
 
+    // if system, add roles we want to allow
+    if (system.equals(Optional.ofNullable(jwt.getClaim("azp")).map(Claim::asString).orElse(null))) {
+      roles.add(Roles.clin_qlin_me.name());
+    }
+
     // ignore all roles that aren't clin or the ones in QLIN enum
     return roles.stream().filter(r -> r.startsWith(USER_ROLES_CLIN_PREFIX))
       .map(r -> Enums.getIfPresent(Roles.class, r).orNull())
       .filter(Objects::nonNull)
+      .distinct()
       .toList();
   }
 

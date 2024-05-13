@@ -40,7 +40,7 @@ public class App {
     final ExceptionHandler exceptionHandler = new ExceptionHandler();
     final S3Client s3Client = new S3Client(CONFIG.awsEndpoint, CONFIG.awsAccessKey, CONFIG.awsSecretKey, 15000);
     final KeycloakClient keycloakClient = new KeycloakClient(CONFIG.securityIssuer, CONFIG.securityClient, CONFIG.securityAudience, 15000);
-    final SecurityHandler securityHandler = new SecurityHandler(CONFIG.securityIssuer, CONFIG.securityAudience);
+    final SecurityHandler securityHandler = new SecurityHandler(CONFIG.securityIssuer, CONFIG.securityAudience, CONFIG.securitySystem);
     final S3TimedCache fhirCache = new S3TimedCache(s3Client, CONFIG.awsBucket, objectMapper.getMapper(), CONFIG.fhirCacheInHour);
     final FhirClient fhirClient = new FhirClient(CONFIG.fhirUrl, 15000, 20, fhirCache);
     final AuthController authController = new AuthController(keycloakClient);

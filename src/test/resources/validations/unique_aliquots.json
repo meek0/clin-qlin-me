@@ -1,0 +1,9 @@
+{
+  "schema" : "CQGC_Germline",
+  "batchId" : "unique_aliquots",
+  "analysesCount" : 1,
+  "errors" : {
+    "analyses[0].labAliquotId" : [ "'16900' should be unique and exists in another batch: another_batch" ]
+  },
+  "warnings" : { }
+}

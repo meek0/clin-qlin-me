@@ -1,0 +1,112 @@
+{
+  "submissionSchema" : "CQGC_Exome_Tumeur_Seul",
+  "analyses" : [ {
+    "ldm" : "LDM-CHUSJ",
+    "ldmSampleId" : "Sample",
+    "ldmSpecimenId" : "Specimen",
+    "specimenType" : "NBL",
+    "sampleType" : "DNA",
+    "ldmServiceRequestId" : "SP00001ServiceRequest",
+    "labAliquotId" : "00001",
+    "patient" : {
+      "firstName" : "First Name",
+      "lastName" : "Last Name",
+      "sex" : "MALE",
+      "ramq" : "LASF11112222",
+      "birthDate" : "12/08/1981",
+      "mrn" : "MRN-00001",
+      "ep" : "CHUSJ",
+      "familyMember" : "PROBAND",
+      "status" : "AFF",
+      "fetus" : false
+    },
+    "files" : {
+      "cram": "00001.cram",
+      "crai": "00001.cram.crai",
+      "snv_vcf": "00001.hard-filtered.gvcf.gz",
+      "snv_tbi": "00001.hard-filtered.gvcf.gz.tbi",
+      "cnv_vcf": "00001.cnv.vcf.gz",
+      "cnv_tbi": "00001.cnv.vcf.gz.tbi",
+      "supplement": "00001.QC.tgz",
+      "exomiser_html": "00001.exomiser.html",
+      "exomiser_json": "00001.exomiser.json",
+      "exomiser_variants_tsv": "00001.exomiser.variants.tsv"
+    },
+    "analysisCode" : "RGDI",
+    "experiment" : {
+      "platform" : "Illumina NovaSeq",
+      "sequencerId" : "SequencerTest_SP",
+      "runName" : "related_fields_somatic",
+      "runDate" : "2023-07-24",
+      "runAlias" : "RunAliasTest_SP",
+      "flowcellId" : "FlowCellTest_SP",
+      "isPairedEnd" : true,
+      "fragmentSize" : 100,
+      "experimentalStrategy" : "WXS",
+      "captureKit" : "RocheKapaHyperExome",
+      "baitDefinition" : "KAPA_HyperExome_hg38_combined_targets",
+      "protocol" : "Protocol"
+    },
+    "workflow" : {
+      "name" : "Dragen",
+      "version" : "4.2.4",
+      "genomeBuild" : "GRCh38",
+      "genomeBuildVersion" : "genomeBuildVersion",
+      "vepVersion" : "vepVersion"
+    }
+  }, {
+    "ldm" : "LDM-CHUSJ",
+    "ldmSampleId" : "Sample",
+    "ldmSpecimenId" : "Specimen",
+    "specimenType" : "TUMOR",
+    "sampleType" : "DNA",
+    "ldmServiceRequestId" : "SP00002ServiceRequest",
+    "labAliquotId" : "00002",
+    "patient" : {
+      "firstName" : "First Name",
+      "lastName" : "Last Name",
+      "sex" : "MALE",
+      "ramq" : "LASF11110200",
+      "birthDate" : "12/08/1981",
+      "mrn" : "MRN-00002",
+      "ep" : "CHUSJ",
+      "familyMember" : "PROBAND",
+      "status" : "AFF",
+      "fetus" : false
+    },
+    "files" : {
+      "cram": "00002.cram",
+      "crai": "00002.cram.crai",
+      "snv_vcf": "00002.hard-filtered.gvcf.gz",
+      "snv_tbi": "00002.hard-filtered.gvcf.gz.tbi",
+      "cnv_vcf": "00002.cnv.vcf.gz",
+      "cnv_tbi": "00002.cnv.vcf.gz.tbi",
+      "supplement": "00002.QC.tgz",
+      "exomiser_html": "00002.exomiser.html",
+      "exomiser_json": "00002.exomiser.json",
+      "exomiser_variants_tsv": "00002.exomiser.variants.tsv"
+    },
+    "panelCode" : "RGDI",
+    "experiment" : {
+      "platform" : "Illumina NovaSeq",
+      "sequencerId" : "SequencerTest_SP",
+      "runName" : "related_fields_somatic",
+      "runDate" : "2023-07-24",
+      "runAlias" : "RunAliasTest_SP",
+      "flowcellId" : "FlowCellTest_SP",
+      "isPairedEnd" : true,
+      "fragmentSize" : 100,
+      "experimentalStrategy" : "WXS",
+      "captureKit" : "RocheKapaHyperExome",
+      "baitDefinition" : "KAPA_HyperExome_hg38_combined_targets",
+      "protocol" : "Protocol"
+    },
+    "workflow" : {
+      "name" : "Dragen",
+      "version" : "4.2.4",
+      "genomeBuild" : "GRCh38",
+      "genomeBuildVersion" : "genomeBuildVersion",
+      "vepVersion" : "vepVersion"
+    }
+  } ]
+}

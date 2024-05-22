@@ -1,0 +1,4 @@
+{
+  "count" : 1,
+  "errors" : [ "00001.cram is missing", "00001.cram.crai is missing", "00001.hard-filtered.gvcf.gz is missing", "00001.hard-filtered.gvcf.gz.tbi is missing", "00001.cnv.vcf.gz is missing", "00001.cnv.vcf.gz.tbi is missing", "00001.QC.tgz is missing", "00001.exomiser.html is missing", "00001.exomiser.json is missing", "00001.exomiser.variants.tsv is missing", "01.cram not in metadata" ]
+}

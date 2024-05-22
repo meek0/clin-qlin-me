@@ -1,0 +1,16 @@
+{
+  "schema" : "CQGC_Germline",
+  "batchId" : "related_fields_germline",
+  "analysesCount" : 4,
+  "errors" : {
+    "analyses[0].specimenType" : [ "'TUMOR' should be: NBL for schema: CQGC_Germline" ],
+    "analyses[0].patient" : [ "should have mrn or ramq or both" ],
+    "analyses[0].files" : [ "familyMember other than PROBAND|SIS|BRO should not have exomiser files" ],
+    "analyses[1].panelCode" : [ "'EXTUM' should be [RGDI, MMG]", "shouldn't be EXTUM for schema: CQGC_Germline" ],
+    "analyses[2].analysisCode" : [ "'EXTUM' should be [RGDI, MMG]", "shouldn't be EXTUM for schema: CQGC_Germline" ],
+    "Family.00001" : [ "should have at least one PROBAND: [MTH, FTH]" ],
+    "Family.00002" : [ "should be without familyId or have more than one familyMember: [PROBAND]" ],
+    "Family.00004" : [ "should be without familyId or have more than one familyMember: [FTH]", "should have at least one PROBAND: [FTH]" ]
+  },
+  "warnings" : { }
+}

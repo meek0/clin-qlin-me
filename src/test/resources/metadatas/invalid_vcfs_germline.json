@@ -1,0 +1,11 @@
+{
+  "submissionSchema" : "CQGC_Germline",
+  "analyses" : [ {
+    "labAliquotId" : "00001"
+  }, {
+    "labAliquotId" : "00002"
+  }, {
+    "labAliquotId" : "00004"
+  }
+  ]
+}

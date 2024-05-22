@@ -1,0 +1,11 @@
+{
+  "schema" : "CQGC_Exome_Tumeur_Seul",
+  "batchId" : "related_fields_somatic",
+  "analysesCount" : 2,
+  "errors" : {
+    "analyses[0].analysisCode" : [ "should be EXTUM for schema: CQGC_Exome_Tumeur_Seul" ],
+    "analyses[0].specimenType" : [ "'NBL' should be: TUMOR for schema: CQGC_Exome_Tumeur_Seul" ],
+    "analyses[1].panelCode" : [ "should be EXTUM for schema: CQGC_Exome_Tumeur_Seul" ]
+  },
+  "warnings" : { }
+}

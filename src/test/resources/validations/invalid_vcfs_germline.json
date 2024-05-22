@@ -1,0 +1,5 @@
+{
+  "count" : 2,
+  "errors" : [ "00004 in metadata but VCF is missing" ],
+  "warnings" : [ "00003 not related with metadata but found in VCF: [00002.hard-filtered.formatted.norm.vep.vcf.gz]" ]
+}

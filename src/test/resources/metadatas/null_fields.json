@@ -1,0 +1,57 @@
+{
+  "submissionSchema" : null,
+  "analyses" : [ {
+    "ldm" : null,
+    "ldmSpecimenId" : null,
+    "ldmSampleId" : null,
+    "specimenType" : null,
+    "sampleType" : null,
+    "ldmServiceRequestId" : null,
+    "labAliquotId" : null,
+    "patient" : {
+      "firstName" : null,
+      "lastName" : null,
+      "sex" : null,
+      "ramq" : null,
+      "birthDate" : null,
+      "mrn" : null,
+      "ep" : null,
+      "designFamily" : null,
+      "familyMember" : null,
+      "familyId" : null,
+      "status" : null,
+      "fetus" : null
+    },
+    "files" : {
+      "cram": null,
+      "crai": null,
+      "snv_vcf": null,
+      "snv_tbi": null,
+      "cnv_vcf": null,
+      "cnv_tbi": null,
+      "supplement": null
+    },
+    "analysisCode" : null,
+    "experiment" : {
+      "platform" : null,
+      "sequencerId" : null,
+      "runName" : null,
+      "runDate" : null,
+      "runAlias" : null,
+      "flowcellId" : null,
+      "isPairedEnd" : null,
+      "fragmentSize" : null,
+      "experimentalStrategy" : null,
+      "captureKit" : null,
+      "baitDefinition" : null,
+      "protocol" : null
+    },
+    "workflow" : {
+      "name" : null,
+      "version" : null,
+      "genomeBuild" : null,
+      "genomeBuildVersion" : null,
+      "vepVersion" : null
+    }
+  } ]
+}

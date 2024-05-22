@@ -1,0 +1,7 @@
+{
+  "schema" : "CQGC_Germline",
+  "batchId" : "valid",
+  "analysesCount" : 5,
+  "errors" : { },
+  "warnings" : { }
+}

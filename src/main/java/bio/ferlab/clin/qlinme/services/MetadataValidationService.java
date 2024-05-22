@@ -66,7 +66,7 @@ public class MetadataValidationService {
       validateField("submissionSchema", m.submissionSchema(), validation, schemaValues);
       validation.setSchema(m.submissionSchema());
       validation.setBatchId(batchId);
-      if (!m.analyses().isEmpty()) {
+      if (m.analyses() != null && !m.analyses().isEmpty()) {
         validation.setAnalysesCount(m.analyses().size());
         for (int ai = 0; ai < m.analyses().size(); ai++) {
           var ana = m.analyses().get(ai);

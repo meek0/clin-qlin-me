@@ -1,0 +1,33 @@
+{
+  "schema" : "CQGC_QLIN",
+  "batchId" : "invalid_values",
+  "analysesCount" : 2,
+  "errors" : {
+    "submissionSchema" : [ "'CQGC_QLIN' should be [CQGC_Germline, CQGC_Exome_Tumeur_Seul]" ],
+    "analyses[0].ldm" : [ "'LDM-QLIN' should be [LDM-CHUSJ, LDM-CUSM]" ],
+    "analyses[0].analysisCode" : [ "'QLIN' should be [RGDI, MMG]" ],
+    "analyses[0].sampleType" : [ "'QLIN' should be [DNA]" ],
+    "analyses[0].specimenType" : [ "'QLIN' should be [NBL, TUMOR]" ],
+    "analyses[0].patient.firstName" : [ "'F' should have length >= 2 and no special characters, cf. regex: ^[a-zA-Z0-9- .'\\u00C0-\\u00FF]*$" ],
+    "analyses[0].patient.lastName" : [ "'L' should have length >= 2 and no special characters, cf. regex: ^[a-zA-Z0-9- .'\\u00C0-\\u00FF]*$" ],
+    "analyses[0].patient.ep" : [ "'QLIN' should be [CHUSJ, CUSM]" ],
+    "analyses[0].patient.fetus" : [ "'true' should be [false, null]" ],
+    "analyses[0].patient.sex" : [ "'qlin' should be [female, male, unknown]" ],
+    "analyses[0].patient.birthDate" : [ "'1981-08-12' should be formatted like: dd/MM/yyyy" ],
+    "analyses[0].patient.status" : [ "'QLIN' should be [AFF, UNF, UNK]" ],
+    "analyses[0].patient.mrn" : [ "'1' should have length >= 2 and no special characters, cf. regex: ^[a-zA-Z0-9- .'\\u00C0-\\u00FF]*$" ],
+    "analyses[0].patient.ramq" : [ "'LASF11110001' should be a valid RAMQ number" ],
+    "analyses[0].experiment.runDate" : [ "'24-03-2023' should be formatted like: dd/MM/yyyy or yyyy-MM-dd" ],
+    "analyses[0].workflow.version" : [ "'4.2.5' should be [3.8.4, 3.10.4, 4.2.4]" ],
+    "analyses[1].panelCode" : [ "'QLIN' should be [RGDI, MMG]" ],
+    "analyses[1].patient.firstName" : [ "'(First) Name' should have length >= 2 and no special characters, cf. regex: ^[a-zA-Z0-9- .'\\u00C0-\\u00FF]*$" ],
+    "analyses[1].patient.lastName" : [ "'Last Name œ' should have length >= 2 and no special characters, cf. regex: ^[a-zA-Z0-9- .'\\u00C0-\\u00FF]*$" ],
+    "analyses[1].patient.familyMember" : [ "'QLIN' should be [PROBAND, MTH, FTH, SIS, BRO]" ],
+    "analyses[1].patient.birthDate" : [ "'40/15/1981' should be formatted like: dd/MM/yyyy" ],
+    "analyses[1].patient.mrn" : [ "'MRN_00002' should have length >= 2 and no special characters, cf. regex: ^[a-zA-Z0-9- .'\\u00C0-\\u00FF]*$" ],
+    "analyses[1].experiment.runDate" : [ "'2023-15-40' should be formatted like: dd/MM/yyyy or yyyy-MM-dd" ]
+  },
+  "warnings" : {
+    "analyses[0].experiment.runName" : [ "'another_batch' should be similar to batch_id: invalid_values" ]
+  }
+}

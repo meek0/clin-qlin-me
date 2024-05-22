@@ -1,0 +1,10 @@
+{
+  "batchId" : "empty",
+  "analysesCount" : 0,
+  "errors" : {
+    "submissionSchema" : [ "should be [CQGC_Germline, CQGC_Exome_Tumeur_Seul]" ],
+    "analyses" : [ "is required" ],
+    "Experiment.runName" : [ "should have at least one valid runName" ]
+  },
+  "warnings" : { }
+}

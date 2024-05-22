@@ -1,0 +1,17 @@
+{
+  "schema" : "CQGC_Germline",
+  "batchId" : "invalid_patient",
+  "analysesCount" : 3,
+  "errors" : {
+    "analyses[1].patient.mrn" : [ "'MRN-00002' should be: MRN-00001" ],
+    "analyses[1].patient.ramq" : [ "'LASF11112222' should be unique" ],
+    "analyses[2].patient.ramq" : [ "'LASF11112223' should be: LASF11112222" ],
+    "analyses[2].patient.mrn" : [ "'MRN-00001' should be unique" ]
+  },
+  "warnings" : {
+    "analyses[0].patient.firstName" : [ "'Another First Name' should be: First Name" ],
+    "analyses[0].patient.lastName" : [ "'Another Last Name' should be: Last Name" ],
+    "analyses[0].patient.sex" : [ "'female' should be: male" ],
+    "analyses[0].patient.birthDate" : [ "'12/08/1980' should be: 12/08/1981" ]
+  }
+}

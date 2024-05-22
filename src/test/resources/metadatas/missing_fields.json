@@ -1,0 +1,22 @@
+{
+  "submissionSchema" : "CQGC_Germline",
+  "analyses" : [ {
+    "patient" : {
+    },
+    "files" : {
+      "another_file": "foo"
+    },
+    "experiment" : {
+    },
+    "workflow" : {
+    }
+  },{
+    "ldm" : "LDM-CHUSJ",
+    "ldmSampleId" : "Sample",
+    "specimenType" : "NBL",
+    "sampleType" : "DNA",
+    "ldmServiceRequestId" : "ServiceRequest",
+    "labAliquotId" : "00001",
+    "analysisCode" : "RGDI"
+  } ]
+}

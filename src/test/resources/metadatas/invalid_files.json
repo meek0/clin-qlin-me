@@ -1,0 +1,17 @@
+{
+  "submissionSchema" : "CQGC_Germline",
+  "analyses" : [{
+    "files" : {
+      "cram": "00001.cram",
+      "crai": "00001.cram.crai",
+      "snv_vcf": "00001.hard-filtered.gvcf.gz",
+      "snv_tbi": "00001.hard-filtered.gvcf.gz.tbi",
+      "cnv_vcf": "00001.cnv.vcf.gz",
+      "cnv_tbi": "00001.cnv.vcf.gz.tbi",
+      "supplement": "00001.QC.tgz",
+      "exomiser_html": "00001.exomiser.html",
+      "exomiser_json": "00001.exomiser.json",
+      "exomiser_variants_tsv": "00001.exomiser.variants.tsv"
+    }
+  } ]
+}

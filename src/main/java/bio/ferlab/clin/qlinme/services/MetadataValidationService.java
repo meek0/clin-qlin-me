@@ -59,6 +59,7 @@ public class MetadataValidationService {
     var validation = new MetadataValidation();
     Map<String, List<String>> valuesByField = new TreeMap<>();
     Map<String, Family>families = new TreeMap<>();
+    Set<String> validRunNames = new TreeSet<>();
     var ldmValues = organizations.stream().filter(o -> o.startsWith("LDM")).toList();
     var epValues = organizations.stream().filter(o -> !o.startsWith("LDM")).toList();
     if (m != null) {
@@ -118,7 +119,7 @@ public class MetadataValidationService {
             validateField(errorPrefix + ".experiment.platform", exp.platform(), validation, null);
             validateField(errorPrefix + ".experiment.sequencerId", exp.sequencerId(), validation, null);
             validateField(errorPrefix + ".experiment.runName", exp.runName(), validation, null);
-            validateRunName(errorPrefix + ".experiment.runName", exp.runName(), validation, batchId);
+            validateRunName(errorPrefix + ".experiment.runName", exp.runName(), validation, batchId, validRunNames);
             validateField(errorPrefix + ".experiment.runDate", exp.runDate(), validation, null);
             validateDate(errorPrefix+ ".experiment.runDate", exp.runDate(), validation, DateUtils.DDMMYYYY, DateUtils.YYYYMMDD);
             validateField(errorPrefix + ".experiment.runAlias", exp.runAlias(), validation, null);
@@ -163,6 +164,9 @@ public class MetadataValidationService {
       validation.addError("metadata", "is required");
     }
     validateFamilies(families, validation);
+    if (validRunNames.isEmpty()) {
+      validation.addError("Experiment.runName", "should have at least one valid runName");
+    }
     return validation;
   }
 
@@ -274,9 +278,13 @@ public class MetadataValidationService {
     }
   }
 
-  private void validateRunName(String field, String value, MetadataValidation validation, String batchId) {
-    if (value != null && !batchId.contains(value)) {
-      validation.addError(field, "'" + value + "'" + " should be similar to batch_id: " + batchId);
+  private void validateRunName(String field, String value, MetadataValidation validation, String batchId, Set<String> validRunNames) {
+    if (StringUtils.isNotBlank(value)) {
+      if (!batchId.contains(value)) {
+        validation.addWarning(field, "'" + value + "'" + " should be similar to batch_id: " + batchId);
+      } else {
+        validRunNames.add(value);
+      }
     }
   }
 

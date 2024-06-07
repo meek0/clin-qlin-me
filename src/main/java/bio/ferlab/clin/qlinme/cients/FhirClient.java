@@ -4,6 +4,7 @@ import bio.ferlab.clin.qlinme.App;
 import bio.ferlab.clin.qlinme.model.Metadata;
 import bio.ferlab.clin.qlinme.utils.DateUtils;
 import bio.ferlab.clin.qlinme.utils.S3TimedCache;
+import bio.ferlab.clin.qlinme.utils.Utils;
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.context.PerformanceOptionsEnum;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
@@ -82,7 +83,7 @@ public class FhirClient {
     if (aliquotIDs.isEmpty()) return new TreeMap<>();  // don't request fhir with empty query param
     var cacheKey = "fhir.aliquotids."+String.join("_", aliquotIDs);
     return cache.get(cacheKey,  new TypeReference<Map<String, List<String>>>() { }).filter(c -> allowCache).orElseGet(() -> {
-      var response = this.genericClient.search().byUrl("Task?aliquotid=" + String.join(",", aliquotIDs)).count(aliquotIDs.size()).returnBundle(Bundle.class).withAdditionalHeader(HttpHeaders.AUTHORIZATION, rpt).execute();
+      var response = this.genericClient.search().byUrl("Task?aliquotid=" + Utils.encodeURL(String.join(",", aliquotIDs))).count(aliquotIDs.size()).returnBundle(Bundle.class).withAdditionalHeader(HttpHeaders.AUTHORIZATION, rpt).execute();
       var aliquotIDsByBatchID = new TreeMap<String, List<String>>();
       response.getEntry().stream().map(e -> (Task)e.getResource())
         .forEach(t -> {
@@ -108,7 +109,7 @@ public class FhirClient {
     if (ids.isEmpty()) return List.of();  // don't request fhir with empty query param
     var cacheKey = "fhir."+type.toLowerCase()+"."+String.join("_", ids);
     return cache.get(cacheKey,  new TypeReference<List<Metadata.Patient>>() { }).filter(c -> allowCache).orElseGet(() -> {
-      var response = this.genericClient.search().byUrl(type + "?identifier=" + String.join(",", ids)).revInclude(Person.INCLUDE_PATIENT).count(ids.size()).returnBundle(Bundle.class).withAdditionalHeader(HttpHeaders.AUTHORIZATION, rpt).execute();
+      var response = this.genericClient.search().byUrl(type + "?identifier=" + Utils.encodeURL(String.join(",", ids))).revInclude(Person.INCLUDE_PATIENT).count(ids.size()).returnBundle(Bundle.class).withAdditionalHeader(HttpHeaders.AUTHORIZATION, rpt).execute();
       var patients = response.getEntry().stream().filter(e -> e.getResource() instanceof Patient).map(e -> (Patient) e.getResource()).toList();
       var persons = response.getEntry().stream().filter(e -> e.getResource() instanceof Person).map(e -> (Person) e.getResource()).toList();
       log.debug("Fetch patients: {}", patients.size());

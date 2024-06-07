@@ -5,6 +5,8 @@ import io.javalin.http.Context;
 import io.javalin.validation.NullableValidator;
 import org.apache.commons.lang3.StringUtils;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,5 +29,9 @@ public class Utils {
     Map<T, Integer> resultMap = new HashMap<>();
     inputList.forEach(e -> resultMap.merge(e, 1, Integer::sum));
     return resultMap;
+  }
+
+  public static String encodeURL(String url) {
+    return URLEncoder.encode(url, StandardCharsets.UTF_8);
   }
 }

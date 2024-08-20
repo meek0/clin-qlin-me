@@ -1,6 +1,5 @@
 package bio.ferlab.clin.qlinme.cients;
 
-import bio.ferlab.clin.qlinme.App;
 import bio.ferlab.clin.qlinme.model.Metadata;
 import bio.ferlab.clin.qlinme.utils.DateUtils;
 import bio.ferlab.clin.qlinme.utils.S3TimedCache;
@@ -16,7 +15,6 @@ import org.apache.http.HttpHeaders;
 import org.hl7.fhir.r4.model.*;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Slf4j
 public class FhirClient {
@@ -79,6 +77,20 @@ public class FhirClient {
     return aliquotIDsByBatchID;
   }
 
+  public synchronized Map<String, List<String>> getLdmServiceRequestId(String rpt, List<String> ldmServiceRequestIds, boolean allowCache) {
+    var chunkedIDs = Lists.partition(ldmServiceRequestIds, CHUNKED_SIZE);
+    var byBatchID = new TreeMap<String, List<String>>();
+    chunkedIDs.forEach(ids -> {
+      var values = fetchServiceRequestByIdentifiers(rpt, ids, allowCache);
+      values.keySet().forEach(batchId -> {
+        byBatchID.computeIfAbsent(batchId, k -> new ArrayList<>());
+        byBatchID.get(batchId).addAll(values.get(batchId));
+      });
+    });
+    log.info("Found ServiceRequest IDs: {}", byBatchID.values().stream().flatMap(List::stream).toList().size());
+    return byBatchID;
+  }
+
   private Map<String, List<String>> fetchTaskByAliquotIDs(String rpt, List<String> aliquotIDs, boolean allowCache) {
     if (aliquotIDs.isEmpty()) return new TreeMap<>();  // don't request fhir with empty query param
     var cacheKey = "fhir.aliquotids."+String.join("_", aliquotIDs);
@@ -94,6 +106,27 @@ public class FhirClient {
         });
       log.debug("Fetch aliquot IDs: {}", aliquotIDsByBatchID.values().stream().flatMap(List::stream).toList().size());
       return cache.put(cacheKey, aliquotIDsByBatchID);
+    });
+  }
+
+  private Map<String, List<String>> fetchServiceRequestByIdentifiers(String rpt, List<String> ldmServiceRequestIds, boolean allowCache) {
+    if (ldmServiceRequestIds.isEmpty()) return new TreeMap<>();  // don't request fhir with empty query param
+    var cacheKey = "fhir.ldmServiceRequestIds."+String.join("_", ldmServiceRequestIds);
+    return cache.get(cacheKey,  new TypeReference<Map<String, List<String>>>() { }).filter(c -> allowCache).orElseGet(() -> {
+      var response = this.genericClient.search().byUrl("ServiceRequest?identifier=" + Utils.encodeURL(String.join(",", ldmServiceRequestIds)))
+        .count(ldmServiceRequestIds.size()).revInclude(Task.INCLUDE_FOCUS).returnBundle(Bundle.class).withAdditionalHeader(HttpHeaders.AUTHORIZATION, rpt).execute();
+      var byBatchID = new TreeMap<String, List<String>>();
+      response.getEntry().forEach(e -> {
+        if (e.getResource() instanceof Task t) {
+          var focus = t.getFocus().getReference();
+          var sr = response.getEntry().stream().filter(e2 -> e2.getResource() instanceof ServiceRequest s && ("ServiceRequest/"+s.getIdElement().getIdPart()).equals(focus)).map(e2 -> (ServiceRequest)e2.getResource()).findFirst().orElse(new ServiceRequest());
+          var batchId  = t.getGroupIdentifier().getValue();
+          byBatchID.computeIfAbsent(batchId, k -> new ArrayList<>());
+          byBatchID.get(batchId).add(sr.getIdentifierFirstRep().getValue());
+        }
+      });
+      log.debug("Fetch ServiceRequest IDs: {}", byBatchID.values().stream().flatMap(List::stream).toList().size());
+      return cache.put(cacheKey, byBatchID);
     });
   }
 

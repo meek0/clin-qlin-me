@@ -2,8 +2,6 @@ package bio.ferlab.clin.qlinme.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.javalin.openapi.OpenApiIgnore;
-import lombok.Data;
-import lombok.Getter;
 import lombok.Setter;
 
 import java.util.ArrayList;

@@ -20,6 +20,7 @@ class MetadataValidationServiceTest {
   final List<String> panelCodes = List.of("RGDI", "MMG");
   final List<String> organizations = List.of("CHUSJ", "LDM-CHUSJ", "CUSM", "LDM-CUSM");
   final Map<String, List<String>> aliquotIDsByBatch = Map.of("another_batch", List.of("16900"));
+  final Map<String, List<String>> ldmServiceRequestsByBatch = Map.of("another_batch", List.of("SR-00001"));
   final List<Metadata.Patient> patients = List.of(new Metadata.Patient("First Name", "Last Name", "MALE", "LASF11112222", "12/08/1981", "MRN-00001", "CHUSJ", null, null, null, null)); @Test
   void empty() {
     assertBatchId("empty");
@@ -75,9 +76,14 @@ class MetadataValidationServiceTest {
     assertBatchId("invalid_patient");
   }
 
+  @Test
+  void unique_ldmServiceRequestId() {
+    assertBatchId("unique_ldmServiceRequestId");
+  }
+
   private MetadataValidation assertBatchId(String batchId) {
     var metadata = TestUtils.loadTestMetadata(batchId);
-    var validation = service.validateMetadata(metadata, batchId, panelCodes, organizations, aliquotIDsByBatch, patients);
+    var validation = service.validateMetadata(metadata, batchId, panelCodes, organizations, aliquotIDsByBatch, ldmServiceRequestsByBatch, patients);
     TestUtils.assertValidation(batchId, validation);
     return validation;
   }

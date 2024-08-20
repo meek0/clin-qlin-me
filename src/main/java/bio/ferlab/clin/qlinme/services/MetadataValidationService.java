@@ -6,10 +6,8 @@ import bio.ferlab.clin.qlinme.utils.DateUtils;
 import bio.ferlab.clin.qlinme.utils.NameUtils;
 import bio.ferlab.clin.qlinme.utils.Utils;
 import org.apache.commons.lang3.StringUtils;
-import software.amazon.awssdk.services.s3.endpoints.internal.Value;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class MetadataValidationService {
 
@@ -55,7 +53,7 @@ public class MetadataValidationService {
 
   record Family(List<String> members){}
 
-  public MetadataValidation validateMetadata(Metadata m, String batchId, List<String> panelCodeValues, List<String> organizations, Map<String, List<String>> aliquotIDsByBatch, List<Metadata.Patient> patients) {
+  public MetadataValidation validateMetadata(Metadata m, String batchId, List<String> panelCodeValues, List<String> organizations, Map<String, List<String>> aliquotIDsByBatch, Map<String, List<String>> ldmServiceRequestsByBatch, List<Metadata.Patient> patients) {
     var validation = new MetadataValidation();
     Map<String, List<String>> valuesByField = new TreeMap<>();
     Map<String, Family>families = new TreeMap<>();
@@ -79,6 +77,7 @@ public class MetadataValidationService {
           validateField(errorPrefix + ".labAliquotId", ana.labAliquotId(), validation, null);
           checkUnicity("labAliquotId", errorPrefix + ".labAliquotId", ana.labAliquotId(), valuesByField, validation);
           checkAliquotId(errorPrefix + ".labAliquotId", ana.labAliquotId(), validation, batchId, aliquotIDsByBatch);
+          checkLdmServiceRequestId(errorPrefix + ".ldmServiceRequestId", ana.ldmServiceRequestId(), validation, batchId, ldmServiceRequestsByBatch);
 
           var panelCode = Optional.ofNullable(ana.analysisCode()).orElse(ana.panelCode());
           var panelCodeField = Optional.ofNullable(ana.analysisCode()).map(e -> "analysisCode").orElse("panelCode");
@@ -220,6 +219,18 @@ public class MetadataValidationService {
     }
   }
 
+  private void checkLdmServiceRequestId(String field, String value, MetadataValidation validation, String currentBatchId, Map<String, List<String>> ldmServiceRequestsByBatch) {
+    if (StringUtils.isNotBlank(value)) {
+      for (var batchId: ldmServiceRequestsByBatch.keySet()) {
+        var existing = ldmServiceRequestsByBatch.get(batchId).stream().filter(ids -> ids.contains(value)).findFirst();
+        if (existing.isPresent() && !currentBatchId.equals(batchId)) {
+          validation.addError(field, "'" + value + "'" + " should be unique and exists in another batch: " + batchId);
+          break;
+        }
+      }
+    }
+  }
+
   private void validateFamilies(Map<String, Family> families, MetadataValidation validation) {
     for(var familyId: families.keySet()) {
       var family = families.get(familyId);
@@ -331,6 +342,14 @@ public class MetadataValidationService {
   public List<String> extractAliquotIDs(Metadata metadata) {
     try {
       return metadata.analyses().stream().map(Metadata.Analysis::labAliquotId).filter(StringUtils::isNotBlank).distinct().sorted().toList();
+    } catch (Exception e) {
+      return List.of();
+    }
+  }
+
+  public List<String> extractLdmServiceRequestId(Metadata metadata) {
+    try {
+      return metadata.analyses().stream().map(Metadata.Analysis::ldmServiceRequestId).filter(StringUtils::isNotBlank).distinct().sorted().toList();
     } catch (Exception e) {
       return List.of();
     }

@@ -32,6 +32,6 @@ public class Utils {
   }
 
   public static String encodeURL(String url) {
-    return URLEncoder.encode(url, StandardCharsets.UTF_8);
+    return url == null ? null : URLEncoder.encode(url, StandardCharsets.UTF_8);
   }
 }

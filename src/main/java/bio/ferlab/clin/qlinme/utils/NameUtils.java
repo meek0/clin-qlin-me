@@ -3,8 +3,6 @@ package bio.ferlab.clin.qlinme.utils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
-import java.time.DateTimeException;
-import java.time.LocalDate;
 import java.util.regex.Pattern;
 
 @Slf4j

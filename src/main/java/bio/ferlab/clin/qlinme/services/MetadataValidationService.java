@@ -210,7 +210,7 @@ public class MetadataValidationService {
   private void checkAliquotId(String field, String value, MetadataValidation validation, String currentBatchId, Map<String, List<String>> aliquotIDsByBatch) {
     if (StringUtils.isNotBlank(value)) {
       for (var batchId: aliquotIDsByBatch.keySet()) {
-        var existing = aliquotIDsByBatch.get(batchId).stream().filter(ids -> ids.contains(value)).findFirst();
+        var existing = aliquotIDsByBatch.get(batchId).stream().filter(id -> id.equals(value)).findFirst();
         if (existing.isPresent() && !currentBatchId.equals(batchId)) {
           validation.addError(field, "'" + value + "'" + " should be unique and exists in another batch: " + batchId);
           break;
@@ -222,7 +222,7 @@ public class MetadataValidationService {
   private void checkLdmServiceRequestId(String field, String value, MetadataValidation validation, String currentBatchId, Map<String, List<String>> ldmServiceRequestsByBatch) {
     if (StringUtils.isNotBlank(value)) {
       for (var batchId: ldmServiceRequestsByBatch.keySet()) {
-        var existing = ldmServiceRequestsByBatch.get(batchId).stream().filter(ids -> ids.contains(value)).findFirst();
+        var existing = ldmServiceRequestsByBatch.get(batchId).stream().filter(id -> id.equals(value)).findFirst();
         if (existing.isPresent() && !currentBatchId.equals(batchId)) {
           validation.addError(field, "'" + value + "'" + " should be unique and exists in another batch: " + batchId);
           break;

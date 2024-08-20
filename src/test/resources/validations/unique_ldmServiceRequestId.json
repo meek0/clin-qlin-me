@@ -1,0 +1,9 @@
+{
+  "schema" : "CQGC_Germline",
+  "batchId" : "unique_ldmServiceRequestId",
+  "analysesCount" : 1,
+  "errors" : {
+    "analyses[0].ldmServiceRequestId" : [ "'SR-00001' should be unique and exists in another batch: another_batch" ]
+  },
+  "warnings" : { }
+}

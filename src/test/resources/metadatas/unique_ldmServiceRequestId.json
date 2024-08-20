@@ -1,0 +1,54 @@
+{
+  "submissionSchema": "CQGC_Germline",
+  "analyses": [
+    {
+      "ldm": "LDM-CHUSJ",
+      "ldmSampleId": "SampleP-Erreur",
+      "ldmSpecimenId": "SpecimenP-Erreur",
+      "specimenType": "NBL",
+      "sampleType": "DNA",
+      "ldmServiceRequestId": "SR-00001",
+      "labAliquotId": "16901",
+      "patient": {
+        "firstName": "Proband-Erreur",
+        "lastName": "DoublonLabAliquotId",
+        "sex": "male",
+        "ramq": "DOUP75072201",
+        "birthDate": "22/07/1975",
+        "mrn": "Aliquot-2201",
+        "ep": "CHUSJ",
+        "designFamily": "SOLO",
+        "familyMember": "PROBAND",
+        "status": "AFF"
+      },
+      "files": {
+        "cram": "16900.cram",
+        "crai": "16900.cram.crai",
+        "snv_vcf": "16900.hard-filtered.gvcf.gz",
+        "snv_tbi": "16900.hard-filtered.gvcf.gz.tbi",
+        "cnv_vcf": "16900.cnv.vcf.gz",
+        "cnv_tbi": "16900.cnv.vcf.gz.tbi",
+        "supplement": "16900.QC.tgz"
+      },
+      "panelCode": "RGDI",
+      "experiment": {
+        "platform": "Illumina NovaSeq",
+        "sequencerId": "SequencerTest",
+        "runName": "unique_ldmServiceRequestId",
+        "runDate": "2022-07-25",
+        "runAlias": "RunAliasTest",
+        "flowcellId": "FlowCellTest",
+        "isPairedEnd": true,
+        "fragmentSize": 100,
+        "experimentalStrategy": "WXS",
+        "captureKit": "RocheKapaHyperExome",
+        "baitDefinition": "KAPA_HyperExome_hg38_combined_targets"
+      },
+      "workflow": {
+        "name": "Dragen",
+        "version": "3.8.4",
+        "genomeBuild": "GRCh38"
+      }
+    }
+  ]
+}

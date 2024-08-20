@@ -18,7 +18,6 @@ import io.javalin.json.JavalinJackson;
 import io.javalin.openapi.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 
@@ -108,6 +107,7 @@ public class BatchController {
       fhirClient.getPanelCodes(rpt, allowCache),
       fhirClient.getOrganizations(rpt, allowCache),
       fhirClient.getAliquotIDsByBatch(rpt, metadataValidationService.extractAliquotIDs(metadata), allowCache),
+      fhirClient.getLdmServiceRequestId(rpt, metadataValidationService.extractLdmServiceRequestId(metadata), allowCache),
       fhirClient.getPatients(rpt, metadataValidationService.extractMRNs(metadata), metadataValidationService.extractRAMQs(metadata), allowCache));
   }
 

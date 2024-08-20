@@ -77,6 +77,7 @@ public class MetadataValidationService {
           validateField(errorPrefix + ".labAliquotId", ana.labAliquotId(), validation, null);
           checkUnicity("labAliquotId", errorPrefix + ".labAliquotId", ana.labAliquotId(), valuesByField, validation);
           checkAliquotId(errorPrefix + ".labAliquotId", ana.labAliquotId(), validation, batchId, aliquotIDsByBatch);
+          checkUnicity("ldmServiceRequestId", errorPrefix + ".ldmServiceRequestId", ana.ldmServiceRequestId(), valuesByField, validation);
           checkLdmServiceRequestId(errorPrefix + ".ldmServiceRequestId", ana.ldmServiceRequestId(), validation, batchId, ldmServiceRequestsByBatch);
 
           var panelCode = Optional.ofNullable(ana.analysisCode()).orElse(ana.panelCode());

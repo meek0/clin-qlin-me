@@ -61,7 +61,7 @@
     "ldmSpecimenId" : "Specimen",
     "specimenType" : "NBL",
     "sampleType" : "DNA",
-    "ldmServiceRequestId" : "SP00001ServiceRequest",
+    "ldmServiceRequestId" : "SP00002ServiceRequest",
     "labAliquotId" : "00003",
     "patient" : {
       "firstName" : "First Name",
@@ -113,7 +113,7 @@
     "ldmSpecimenId" : "Specimen",
     "specimenType" : "NBL",
     "sampleType" : "DNA",
-    "ldmServiceRequestId" : "SP00001ServiceRequest",
+    "ldmServiceRequestId" : "SP00003ServiceRequest",
     "labAliquotId" : "00001",
     "patient" : {
       "firstName" : "First Name",

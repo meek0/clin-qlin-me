@@ -4,6 +4,7 @@
   "analysesCount" : 2,
   "errors" : {
     "analyses[1].labAliquotId" : [ "'00001' should be unique" ],
+    "analyses[1].ldmServiceRequestId" : [ "'SP00001ServiceRequest' should be unique" ],
     "analyses[1].patient.mrn" : [ "'MRN-00001' should be unique" ],
     "analyses[1].patient.ramq" : [ "'LASF11112222' should be unique" ],
     "Family.00001" : [ "should have distinct familyMembers: [PROBAND, PROBAND]" ]

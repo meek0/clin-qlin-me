@@ -142,7 +142,13 @@ public class FhirClient {
     if (ids.isEmpty()) return List.of();  // don't request fhir with empty query param
     var cacheKey = "fhir."+type.toLowerCase()+"."+String.join("_", ids);
     return cache.get(cacheKey,  new TypeReference<List<Metadata.Patient>>() { }).filter(c -> allowCache).orElseGet(() -> {
-      var response = this.genericClient.search().byUrl(type + "?identifier=" + Utils.encodeURL(String.join(",", ids))).revInclude(Person.INCLUDE_PATIENT).count(ids.size()).returnBundle(Bundle.class).withAdditionalHeader(HttpHeaders.AUTHORIZATION, rpt).execute();
+      var query = this.genericClient.search().byUrl(type + "?identifier=" + Utils.encodeURL(String.join(",", ids)));
+      if (type.equals("Patient")) {
+        query = query.revInclude(Person.INCLUDE_PATIENT);
+      }else if (type.equals("Person")) {
+        query = query.include(Person.INCLUDE_PATIENT);
+      }
+      var response = query.count(Integer.MAX_VALUE).returnBundle(Bundle.class).withAdditionalHeader(HttpHeaders.AUTHORIZATION, rpt).execute();
       var patients = response.getEntry().stream().filter(e -> e.getResource() instanceof Patient).map(e -> (Patient) e.getResource()).toList();
       var persons = response.getEntry().stream().filter(e -> e.getResource() instanceof Person).map(e -> (Person) e.getResource()).toList();
       log.debug("Fetch patients: {}", patients.size());
